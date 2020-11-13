@@ -1,0 +1,23 @@
+name: 'Setup Agda'
+description: 'Set up a specific version of Agda and its standard library and add the command-line tools to the PATH'
+author: 'Orestis Melkonian'
+inputs:
+  agda-version:
+    required: false
+    description: 'Version of Agda to use. If set to "latest", it will always get the latest stable version.'
+    default: 'latest'
+  stdlib-version:
+    required: false
+    description: 'Version of the Agda standard library to use. If set to "latest", it will always get the latest stable version.'
+    default: 'latest'
+  libraries:
+    required: false
+    description: 'Provide extra libraries (from git repositories) to install.'
+    default: []
+outputs:
+  outVal:
+    description: 'Example output value.'
+
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
