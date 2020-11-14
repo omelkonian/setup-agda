@@ -693,7 +693,7 @@ const js_yaml_1 = __webpack_require__(67);
 const path_1 = __webpack_require__(622);
 const supported_versions = __importStar(__webpack_require__(306));
 function getDefaults() {
-    const inpts = js_yaml_1.safeLoad(fs_1.readFileSync(__webpack_require__.ab + "action.yml", 'utf8')).inputs;
+    const inpts = js_yaml_1.safeLoad(fs_1.readFileSync(__webpack_require__.ab + "action-haskell.yml", 'utf8')).inputs;
     const mkVersion = (v, vs) => ({
         version: resolve(inpts[v].default, vs),
         supported: vs
@@ -3151,6 +3151,15 @@ async function cabalConfig() {
 }
 (async () => {
     try {
+        // *** Hard-code parameters for setup-haskell ***
+        Object.entries({
+          'ghc-version': '8.6.5',
+          'enable-stack': true,
+          'stack-no-global': true,
+          'stack-setup-ghc': true
+        }).forEach(([k, v]) => v && (process.env[`INPUT_${k.toUpperCase()}`] = `${v}`));
+        // **********************************************
+
         core.info('Preparing to setup a Haskell environment');
         const opts = opts_1.getOpts(opts_1.getDefaults());
         for (const [t, { resolved }] of Object.entries(opts).filter(o => o[1].enable))

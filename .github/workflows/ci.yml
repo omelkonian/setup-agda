@@ -28,7 +28,7 @@ jobs:
       - run: npm ci --prefer-offline --no-audit --progress=false
       - run: npm test
 
-  install-haskell:
+  install-agda:
     name: Agda ${{ matrix.agda }}, stdlib ${{ matrix.stdlib }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -40,6 +40,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-haskell@v1
+        id: setup-haskell
+        with:
+          ghc-version: '8.6.5'
+          enable-stack: true
+          stack-no-global: true
+          stack-setup-ghc: true
+      - name: Mark Haskell as installed
+        run: echo "HASKELL=1" >> $GITHUB_ENV
       - uses: ./
         with:
           agda-version: ${{ matrix.agda }}
