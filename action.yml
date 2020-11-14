@@ -12,8 +12,8 @@ inputs:
     default: 'latest'
   libraries:
     required: false
-    description: 'Provide extra libraries (from git repositories) to install.'
-    default: []
+    description: 'Provide extra libraries (from git repositories) to install, e.g. "omelkonian:formal-prelude,UlfNorell:agda-prelude"'
+    default: ''
 outputs:
   outVal:
     description: 'Example output value.'

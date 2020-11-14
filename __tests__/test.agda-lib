@@ -1,0 +1,5 @@
+name: test
+depend:
+  standard-library
+  formal-prelude
+include: .

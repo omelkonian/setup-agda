@@ -7,9 +7,11 @@ import * as supported_versions from './versions.json';
 export type Version = string;
 export type GitUser = string;
 export type GitRepo = string;
-export type Library = [GitUser, GitRepo];
 
-export type Tool = 'agda' | 'stdlib';
+export interface Library {
+  user: string;
+  repo: string;
+}
 
 export interface Options {
   agda: Version;
@@ -43,13 +45,19 @@ export function getDefaults(): Options {
   });
 }
 
+function parseLibs(libs: string): Library[] {
+  return libs.split(',').map(l => {
+    const [usr, rep] = l.split(':');
+    return {user: usr, repo: rep};
+  });
+}
+
 export function getOpts(): Options {
   const def: Options = getDefaults();
   const opts: Options = {
     agda: core.getInput('agda-version') || def.agda,
     stdlib: core.getInput('stdlib-version') || def.stdlib,
-    libraries:
-      ((core.getInput('libraries') as unknown) as Library[]) || def.libraries
+    libraries: parseLibs(core.getInput('libraries')) || def.libraries
   };
   const opts2 = mkOpts(opts);
   core.debug(

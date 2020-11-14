@@ -2,7 +2,7 @@ name: build-test
 on:
   push:
     branches:
-      - main
+      - master
     paths-ignore:
       - '**.md'
   pull_request:
@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macOS-latest, windows-latest]
+        os: [ubuntu-latest] #, macOS-latest, windows-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -29,59 +29,23 @@ jobs:
       - run: npm test
 
   install-haskell:
-    name: GHC ${{ matrix.ghc }}, Cabal ${{ matrix.cabal }} - ${{ matrix.os }}
+    name: Agda ${{ matrix.agda }}, stdlib ${{ matrix.stdlib }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macOS-latest, windows-latest]
-        ghc: ['latest', '8.4.4']
-        cabal: ['latest']
-        include:
-          - os: ubuntu-latest
-            ghc: '7.10.3'
-            cabal: '3.0.0.0'
-          - os: ubuntu-latest
-            ghc: '8.2.2'
-            cabal: '2.0'
+        os: [ubuntu-latest] #, macOS-latest]
+        agda: ['latest'] #, '2.6.0']
+        stdlib: ['latest'] #, '1.2']
 
     steps:
       - uses: actions/checkout@v2
       - uses: ./
         with:
-          ghc-version: ${{ matrix.ghc }}
-          cabal-version: ${{ matrix.cabal }}
-      - run: |
-          runhaskell --version
-          runhaskell __tests__/hello.hs
+          agda-version: ${{ matrix.agda }}
+          stdlib-version: ${{ matrix.stdlib }}
+          libraries: 'omelkonian:formal-prelude'
       - shell: bash
-        run: cd __tests__/project && cabal build && cabal run
-      - run: |
-          cabal --version
-          ghc --version
-      - shell: bash
-        if: matrix.ghc != 'latest'
-        # this check depends on the ghc versions being "exact" in the matrix
         run: |
-          [[ $(ghc --numeric-version) == ${{ matrix.ghc }} ]]
-
-  install-stack:
-    name: Stack ${{ matrix.stack }} ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macOS-latest, windows-latest]
-        stack: ['latest', '1.9.1']
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: ./
-        with:
-          enable-stack: true
-          stack-no-global: true
-          stack-version: ${{ matrix.stack }}
-      - run: |
-          stack --version
-          stack
+          agda --version
+          cd __tests__ && agda Test.agda

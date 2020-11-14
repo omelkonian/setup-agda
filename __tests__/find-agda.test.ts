@@ -1,5 +1,5 @@
 import {getInput} from '@actions/core';
-import {getOpts, getDefaults, Tool} from '../src/opts';
+import {getOpts, getDefaults} from '../src/opts';
 import * as supported_versions from '../src/versions.json';
 
 const def = getDefaults();
@@ -14,6 +14,7 @@ const mkName = (s: string): string =>
 const setupEnv = (o: Record<string, unknown>): void =>
   Object.entries(o).forEach(([k, v]) => v && (process.env[mkName(k)] = `${v}`));
 
+type Tool = 'agda' | 'stdlib';
 const forAll = (fn: (t: Tool) => any) =>
   (['agda', 'stdlib'] as const).forEach(fn);
 

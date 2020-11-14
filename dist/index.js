@@ -778,12 +778,18 @@ function getDefaults() {
     });
 }
 exports.getDefaults = getDefaults;
+function parseLibs(libs) {
+    return libs.split(',').map(l => {
+        const [usr, rep] = l.split(':');
+        return { user: usr, repo: rep };
+    });
+}
 function getOpts() {
     const def = getDefaults();
     const opts = {
         agda: core.getInput('agda-version') || def.agda,
         stdlib: core.getInput('stdlib-version') || def.stdlib,
-        libraries: core.getInput('libraries') || def.libraries
+        libraries: parseLibs(core.getInput('libraries')) || def.libraries
     };
     const opts2 = mkOpts(opts);
     core.debug(`Options are: ${JSON.stringify(opts)} ~> ${JSON.stringify(opts2)}`);
@@ -988,6 +994,13 @@ exports.issueCommand = issueCommand;
 /***/ (function(module) {
 
 module.exports = require("child_process");
+
+/***/ }),
+
+/***/ 184:
+/***/ (function(module) {
+
+module.exports = require("vm");
 
 /***/ }),
 
@@ -5706,43 +5719,28 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
+const io = __importStar(__webpack_require__(1));
+const fs_1 = __webpack_require__(747);
+const path_1 = __webpack_require__(622);
+const vm = __importStar(__webpack_require__(184));
 const opts_1 = __webpack_require__(54);
 const exec_1 = __webpack_require__(986);
 (async () => {
     try {
         core.info('Preparing to setup a Agda environment');
         const opts = opts_1.getOpts();
-        const ghc = '8.6.5';
-        // Install stack
-        await exec_1.exec(`\
-    mkdir -p $HOME/.local/bin && \
-    export PATH=$HOME/.local/bin:$PATH && \ 
-    curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C $HOME/.local/bin '*/stack' \
-    `);
-        // Install Agda
-        await exec_1.exec(`\
-    curl -L https://github.com/agda/agda/archive/v${opts.agda}.zip -o $HOME/agda-${opts.agda}.zip && \
-    unzip -qq $HOME/agda-${opts.agda}.zip -d $HOME && \
-	  cd $HOME/agda-${opts.agda}; && \
-    stack install --stack-yaml=stack-${ghc}.yaml && \
-	  mkdir -p $HOME/.agda \
-    `);
-        // Install stdlib
-        await exec_1.exec(`\
-    curl -L https://github.com/agda/agda-stdlib/archive/v${opts.stdlib}.zip -o $HOME/agda-stdlib-${opts.stdlib}.zip && \
-    unzip -qq $HOME/agda-stdlib-${opts.stdlib}.zip -d $HOME \
-	  echo "$HOME/agda-stdlib-${opts.stdlib}/standard-library.agda-lib" >> $HOME/.agda/libraries
-    `);
+        const home = `${process.env.HOME}`;
+        const cur = `${process.env.GITHUB_WORKSPACE}`;
+        // Setup Haskell with stack enabled
+        vm.runInNewContext(fs_1.readFileSync(__webpack_require__.ab + "setup-haskell.js", 'utf8'), { 'ghc-version': '8.6.5', 'enable-stack': true, 'stack-version': 'latest' });
+        // Install Agda and its standard library
+        core.addPath(`${home}/.local/bin/`);
+        io.mkdirP(`${home}/.agda`);
+        await exec_1.exec(`${cur}/scripts/install-agda.sh ${home} ${opts.agda} ${opts.stdlib}`);
         // Install libraries
         Object.values(opts.libraries).forEach(async (l) => {
-            core.info(`GitUser: ${l[0]}, GitRepo: ${l[1]}`);
-            const user = l[0];
-            const repo = l[1];
-            await exec_1.exec(`\
-	    curl -L https://github.com/${user}/${repo}/archive/master.zip -o $(HOME)/${repo}-master.zip && \
-	    unzip -qq $HOME/${repo}-master.zip -d $HOME && \
-	    echo "$HOME/${repo}-master/${repo}.agda-lib" >> $HOME/.agda/libraries \
-      `);
+            core.info(`Library: ${l}`);
+            await exec_1.exec(`${cur}/scripts/install-lib.sh ${home} ${l.user} ${l.repo}`);
         });
     }
     catch (error) {
