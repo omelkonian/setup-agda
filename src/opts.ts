@@ -41,15 +41,17 @@ export function getDefaults(): Options {
   return mkOpts({
     agda: yml['agda-version'].default,
     stdlib: yml['stdlib-version'].default,
-    libraries: yml['libraries'].default
+    libraries: parseLibs(yml['libraries'].default)
   });
 }
 
 function parseLibs(libs: string): Library[] {
-  return libs.split(',').map(l => {
+  const parseRepo = (l: string): Library => {
     const [usr, rep] = l.split(':');
     return {user: usr, repo: rep};
-  });
+  };
+  const ls = libs.split(',');
+  return ls[0] ? ls.map(parseRepo) : [];
 }
 
 export function getOpts(): Options {
