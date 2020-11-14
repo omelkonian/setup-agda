@@ -54,6 +54,7 @@ function parseLibs(libs: string): Library[] {
 
 export function getOpts(): Options {
   const def: Options = getDefaults();
+  core.debug(`Default options are: ${JSON.stringify(def)}`);
   const opts: Options = {
     agda: core.getInput('agda-version') || def.agda,
     stdlib: core.getInput('stdlib-version') || def.stdlib,
