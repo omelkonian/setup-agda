@@ -774,18 +774,21 @@ function getDefaults() {
     return mkOpts({
         agda: yml['agda-version'].default,
         stdlib: yml['stdlib-version'].default,
-        libraries: yml['libraries'].default
+        libraries: parseLibs(yml['libraries'].default)
     });
 }
 exports.getDefaults = getDefaults;
 function parseLibs(libs) {
-    return libs.split(',').map(l => {
+    const parseRepo = (l) => {
         const [usr, rep] = l.split(':');
         return { user: usr, repo: rep };
-    });
+    };
+    const ls = libs.split(',');
+    return ls[0] ? ls.map(parseRepo) : [];
 }
 function getOpts() {
     const def = getDefaults();
+    core.debug(`Default options are: ${JSON.stringify(def)}`);
     const opts = {
         agda: core.getInput('agda-version') || def.agda,
         stdlib: core.getInput('stdlib-version') || def.stdlib,
@@ -994,13 +997,6 @@ exports.issueCommand = issueCommand;
 /***/ (function(module) {
 
 module.exports = require("child_process");
-
-/***/ }),
-
-/***/ 184:
-/***/ (function(module) {
-
-module.exports = require("vm");
 
 /***/ }),
 
@@ -5720,22 +5716,20 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const io = __importStar(__webpack_require__(1));
-const fs_1 = __webpack_require__(747);
-const path_1 = __webpack_require__(622);
-const vm = __importStar(__webpack_require__(184));
 const opts_1 = __webpack_require__(54);
 const exec_1 = __webpack_require__(986);
 (async () => {
     try {
-        core.info('Preparing to setup a Agda environment');
-        const opts = opts_1.getOpts();
+        core.info('Preparing to setup a Agda environment (after Haskell has been setup)');
         const home = `${process.env.HOME}`;
+        core.info(`HOME: ${home}`);
         const cur = `${process.env.GITHUB_WORKSPACE}`;
-        // Setup Haskell with stack enabled
-        vm.runInNewContext(fs_1.readFileSync(__webpack_require__.ab + "setup-haskell.js", 'utf8'), { 'ghc-version': '8.6.5', 'enable-stack': true, 'stack-version': 'latest' });
+        core.info(`GITHUB_WORKSPACE: ${cur}`);
+        const opts = opts_1.getOpts();
+        core.info(`Options are: ${JSON.stringify(opts)}`);
         // Install Agda and its standard library
         core.addPath(`${home}/.local/bin/`);
-        io.mkdirP(`${home}/.agda`);
+        await io.mkdirP(`${home}/.agda`);
         await exec_1.exec(`${cur}/scripts/install-agda.sh ${home} ${opts.agda} ${opts.stdlib}`);
         // Install libraries
         Object.values(opts.libraries).forEach(async (l) => {
