@@ -87,28 +87,31 @@ async function save(c: Cache): Promise<void> {
     });
 
     // Build current Agda project
-    const agdaCss = opts.css
-      ? `../${opts.css}`
-      : join(__dirname, '..', 'Agda.css');
-    core.info(
-      `Building Agda project with main file: ${opts.main} and css file: ${agdaCss}`
-    );
-    await io.mkdirP(`${cur}/site/css`);
-    await sh(`\
-    agda --html --html-dir=site --css=${agdaCss} ${opts.main}.agda && \
-    cp site/${opts.main}.html site/index.html\
-    `);
+    const htmlDir = 'site';
+    if (opts.build) {
+      const agdaCss = opts.css
+        ? `../${opts.css}`
+        : join(__dirname, '..', 'Agda.css');
+      core.info(
+        `Building Agda project with main file: ${opts.main} and css file: ${agdaCss}`
+      );
+      await io.mkdirP(`${cur}/${htmlDir}/css`);
+      await sh(`\
+      agda --html --html-dir=${htmlDir} --css=${agdaCss} ${opts.main}.agda && \
+      cp ${htmlDir}/${opts.main}.html ${htmlDir}/index.html\
+      `);
+    }
 
     // Save caches
     await save(haskellCache);
     await save(agdaCache);
 
     // Deploy Github page with Agda HTML code rendered in HTML
-    if (opts.token)
+    if (opts.token && opts.deployOn.split(':') == [opts.agda, opts.stdlib])
       deploy({
         accessToken: opts.token,
-        branch: 'gh-pages',
-        folder: 'site',
+        branch: opts.deployBranch,
+        folder: htmlDir,
         silent: true,
         workspace: cur
       });

@@ -2441,7 +2441,10 @@ function getDefaults() {
         agda: yml['agda-version'].default,
         stdlib: yml['stdlib-version'].default,
         libraries: parseLibs(yml['libraries'].default),
+        build: yml['build'].default,
         main: yml['main'].default,
+        deployOn: yml['deployOn'].default,
+        deployBranch: yml['deployBranch'].default,
         token: yml['token'].default,
         css: yml['css'].default
     });
@@ -2455,6 +2458,7 @@ function parseLibs(libs) {
     const ls = libs.split(',');
     return ls[0] ? ls.map(parseRepo) : [];
 }
+const parseBoolean = (s) => s == 'true';
 function getOpts() {
     const def = getDefaults();
     core.debug(`Default options are: ${JSON.stringify(def)}`);
@@ -2462,7 +2466,10 @@ function getOpts() {
         agda: core.getInput('agda-version') || def.agda,
         stdlib: core.getInput('stdlib-version') || def.stdlib,
         libraries: parseLibs(core.getInput('libraries')) || def.libraries,
+        build: parseBoolean(core.getInput('build')) || def.build,
         main: core.getInput('main') || def.main,
+        deployOn: core.getInput('deployOn') || def.deployOn,
+        deployBranch: core.getInput('deployBranch') || def.deployBranch,
         token: core.getInput('token'),
         css: core.getInput('css') || def.css
     };
@@ -57597,24 +57604,27 @@ async function save(c) {
       `);
         });
         // Build current Agda project
-        const agdaCss = opts.css
-            ? `../${opts.css}`
-            : __webpack_require__.ab + "Agda.css";
-        core.info(`Building Agda project with main file: ${opts.main} and css file: ${agdaCss}`);
-        await io.mkdirP(`${cur}/site/css`);
-        await sh(`\
-    agda --html --html-dir=site --css=${agdaCss} ${opts.main}.agda && \
-    cp site/${opts.main}.html site/index.html\
-    `);
+        const htmlDir = 'site';
+        if (opts.build) {
+            const agdaCss = opts.css
+                ? `../${opts.css}`
+                : __webpack_require__.ab + "Agda.css";
+            core.info(`Building Agda project with main file: ${opts.main} and css file: ${agdaCss}`);
+            await io.mkdirP(`${cur}/${htmlDir}/css`);
+            await sh(`\
+      agda --html --html-dir=${htmlDir} --css=${agdaCss} ${opts.main}.agda && \
+      cp ${htmlDir}/${opts.main}.html ${htmlDir}/index.html\
+      `);
+        }
         // Save caches
         await save(haskellCache);
         await save(agdaCache);
         // Deploy Github page with Agda HTML code rendered in HTML
-        if (opts.token)
+        if (opts.token && (opts.deployOn.split(':') == [opts.agda, opts.stdlib]))
             github_pages_deploy_action_1.default({
                 accessToken: opts.token,
-                branch: 'gh-pages',
-                folder: 'site',
+                branch: opts.deployBranch,
+                folder: htmlDir,
                 silent: true,
                 workspace: cur
             });

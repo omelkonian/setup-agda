@@ -17,7 +17,10 @@ export interface Options {
   agda: Version;
   stdlib: Version;
   libraries: Library[];
+  build: boolean;
   main: string;
+  deployOn: string;
+  deployBranch: string;
   token: string;
   css: string;
 }
@@ -45,7 +48,10 @@ export function getDefaults(): Options {
     agda: yml['agda-version'].default,
     stdlib: yml['stdlib-version'].default,
     libraries: parseLibs(yml['libraries'].default),
+    build: yml['build'].default,
     main: yml['main'].default,
+    deployOn: yml['deployOn'].default,
+    deployBranch: yml['deployBranch'].default,
     token: yml['token'].default,
     css: yml['css'].default
   });
@@ -60,6 +66,8 @@ function parseLibs(libs: string): Library[] {
   return ls[0] ? ls.map(parseRepo) : [];
 }
 
+const parseBoolean = (s: string): boolean => s == 'true';
+
 export function getOpts(): Options {
   const def: Options = getDefaults();
   core.debug(`Default options are: ${JSON.stringify(def)}`);
@@ -67,7 +75,10 @@ export function getOpts(): Options {
     agda: core.getInput('agda-version') || def.agda,
     stdlib: core.getInput('stdlib-version') || def.stdlib,
     libraries: parseLibs(core.getInput('libraries')) || def.libraries,
+    build: parseBoolean(core.getInput('build')) || def.build,
     main: core.getInput('main') || def.main,
+    deployOn: core.getInput('deployOn') || def.deployOn,
+    deployBranch: core.getInput('deployBranch') || def.deployBranch,
     token: core.getInput('token'),
     css: core.getInput('css') || def.css
   };
