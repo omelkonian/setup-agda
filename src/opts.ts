@@ -17,12 +17,16 @@ export interface Options {
   agda: Version;
   stdlib: Version;
   libraries: Library[];
+  main: string;
+  token: string;
+  css: string;
 }
 
 function mkOpts(opts: Options): Options {
   const pagda = opts.agda;
   const pstdlib = opts.stdlib;
   return {
+    ...opts,
     agda:
       pagda === 'latest'
         ? supported_versions.agda[0]
@@ -30,8 +34,7 @@ function mkOpts(opts: Options): Options {
     stdlib:
       pstdlib == 'latest'
         ? supported_versions.stdlib[0]
-        : supported_versions.stdlib.find(v => v.startsWith(pstdlib)) ?? pstdlib,
-    libraries: opts.libraries
+        : supported_versions.stdlib.find(v => v.startsWith(pstdlib)) ?? pstdlib
   };
 }
 
@@ -41,7 +44,10 @@ export function getDefaults(): Options {
   return mkOpts({
     agda: yml['agda-version'].default,
     stdlib: yml['stdlib-version'].default,
-    libraries: parseLibs(yml['libraries'].default)
+    libraries: parseLibs(yml['libraries'].default),
+    main: yml['main'].default,
+    token: yml['token'].default,
+    css: yml['css'].default
   });
 }
 
@@ -60,7 +66,10 @@ export function getOpts(): Options {
   const opts: Options = {
     agda: core.getInput('agda-version') || def.agda,
     stdlib: core.getInput('stdlib-version') || def.stdlib,
-    libraries: parseLibs(core.getInput('libraries')) || def.libraries
+    libraries: parseLibs(core.getInput('libraries')) || def.libraries,
+    main: core.getInput('main') || def.main,
+    token: core.getInput('token'),
+    css: core.getInput('css') || def.css
   };
   const opts2 = mkOpts(opts);
   core.debug(

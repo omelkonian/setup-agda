@@ -12,8 +12,18 @@ inputs:
     default: 'latest'
   libraries:
     required: false
-    description: 'Provide extra libraries (from git repositories) to install, e.g. "omelkonian:formal-prelude,UlfNorell:agda-prelude"'
+    description: 'Provide extra libraries (from git repositories) to install, e.g. "omelkonian:formal-prelude,UlfNorell:agda-prelude".'
     default: ''
+  main:
+    required: false
+    description: "Entry point for your Agda project without the '.agda' extention, e.g. 'Example.Main'"
+    default: 'Main'
+  token:
+    required: false
+    description: 'Secret token for deploying to Github Pages, will not deploy if not set to GITHUB_TOKEN.'
+  css:
+    required: false
+    description: "Optional .css file to use for HTML-rendered Agda code, a path relative to the project's root."
 outputs:
   outVal:
     description: 'Example output value.'

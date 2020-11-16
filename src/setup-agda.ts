@@ -1,10 +1,34 @@
+import {spawn} from 'child_process';
+import {promisify} from 'util';
+import {join} from 'path';
+
 import * as core from '@actions/core';
 import * as io from '@actions/io';
 import {restoreCache, saveCache} from '@actions/cache';
-import {getOpts} from './opts';
-import type {Options} from './opts';
-import {spawn} from 'child_process';
-import {promisify} from 'util';
+import deploy from '@jamesives/github-pages-deploy-action';
+
+import {getOpts, Options} from './opts';
+
+// Promise-based shell commands
+async function sh(cmd: string): Promise<void> {
+  promisify(spawn)('sh', ['-c', cmd], {stdio: 'inherit'});
+}
+
+// Caching
+interface Cache {
+  key: string;
+  paths: string[];
+}
+
+async function restore(c: Cache): Promise<void> {
+  const keyRestored = await restoreCache(c.paths, c.key, [c.key]);
+  core.info(`Cache key restored: ${keyRestored}`);
+}
+
+async function save(c: Cache): Promise<void> {
+  const keySaved = await saveCache(c.paths, c.key);
+  core.info(`Cache key saved: ${keySaved}`);
+}
 
 (async () => {
   try {
@@ -16,26 +40,26 @@ import {promisify} from 'util';
     const opts: Options = getOpts();
     core.info(`Options are: ${JSON.stringify(opts)}`);
 
-    // Promise-based shell commands
-    const sh = async (cmd: string): Promise<void> => {
-      promisify(spawn)('sh', ['-c', cmd], {stdio: 'inherit'});
+    // Cache parameters
+    const haskellCache: Cache = {
+      key: 'stack-cache',
+      paths: [`${home}/.stack`, `${cur}/.stack-work`]
+    };
+    const agdaCache: Cache = {
+      key: `${opts.agda}-${opts.stdlib}`,
+      paths: [`${cur}/_build/`]
     };
 
-    // Cache parameters
-    const paths = [`${home}/.stack`, `${cur}/.stack-work`];
-    const key = 'key';
-    const restoreKeys = [key];
-
-    // Restore cache
-    const keyRestored = await restoreCache(paths, key, restoreKeys);
-    core.info(`Cache key restored: ${keyRestored}`);
+    // Restore caches
+    await restore(haskellCache);
+    await restore(agdaCache);
 
     // Install Agda and its standard library
     const ghc = '8.6.5';
     core.addPath(`${home}/.local/bin/`);
     await io.mkdirP(`${home}/.agda`);
 
-    core.info('Installing Agda...');
+    core.info(`Installing Agda-v${opts.agda}`);
     await sh(`\
     curl -L https://github.com/agda/agda/archive/v${opts.agda}.zip -o ${home}/agda-${opts.agda}.zip && \
     unzip -qq ${home}/agda-${opts.agda}.zip -d ${home} && \
@@ -44,7 +68,7 @@ import {promisify} from 'util';
     `);
 
     // Install Agda's stdlib
-    core.info("Installing Agda's stdlib...");
+    core.info(`Installing agda/stdlib-v${opts.stdlib}`);
     await sh(`\
     curl -L https://github.com/agda/agda-stdlib/archive/v${opts.stdlib}.zip -o ${home}/agda-stdlib-${opts.stdlib}.zip && \
     unzip -qq ${home}/agda-stdlib-${opts.stdlib}.zip -d ${home} && \
@@ -62,9 +86,32 @@ import {promisify} from 'util';
       `);
     });
 
-    // Save cache
-    const keySaved = await saveCache(paths, key);
-    core.info(`Cache key saved: ${keySaved}`);
+    // Build current Agda project
+    const agdaCss = opts.css
+      ? `../${opts.css}`
+      : join(__dirname, '..', 'Agda.css');
+    core.info(
+      `Building Agda project with main file: ${opts.main} and css file: ${agdaCss}`
+    );
+    await io.mkdirP(`${cur}/site/css`);
+    await sh(`\
+    agda --html --html-dir=site --css=${agdaCss} ${opts.main}.agda && \
+    cp site/${opts.main}.html site/index.html\
+    `);
+
+    // Save caches
+    await save(haskellCache);
+    await save(agdaCache);
+
+    // Deploy Github page with Agda HTML code rendered in HTML
+    if (opts.token)
+      deploy({
+        accessToken: opts.token,
+        branch: 'gh-pages',
+        folder: 'site',
+        silent: true,
+        workspace: cur
+      });
   } catch (error) {
     core.setFailed(error.message);
   }

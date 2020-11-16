@@ -54,7 +54,5 @@ jobs:
           agda-version: ${{ matrix.agda }}
           stdlib-version: ${{ matrix.stdlib }}
           libraries: 'omelkonian:formal-prelude'
-      - shell: bash
-        run: |
-          agda --version
-          cd __tests__ && agda Test.agda
+          main: Example.Test
+          token: ${{ secrets.GITHUB_TOKEN }}

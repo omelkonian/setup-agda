@@ -6,7 +6,6 @@
   "main": "src/setup-agda.ts",
   "scripts": {
     "test": "jest",
-    "tsc": "tsc",
     "lint": "eslint . --ext .ts",
     "prettier-format": "prettier --write"
   },
@@ -22,12 +21,13 @@
   "author": "Orestis Melkonian",
   "license": "MIT",
   "dependencies": {
+    "@actions/cache": "^1.0.4",
     "@actions/core": "^1.2.4",
     "@actions/exec": "^1.0.4",
     "@actions/github": "^4.0.0",
     "@actions/glob": "^0.1.0",
     "@actions/io": "^1.0.2",
-    "@actions/cache": "^1.0.4",
+    "@jamesives/github-pages-deploy-action": "^3.7.1",
     "js-yaml": "^3.14.0"
   },
   "devDependencies": {

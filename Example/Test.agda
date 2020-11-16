@@ -1,4 +1,4 @@
-module Test where
+module Example.Test where
 
 open import Data.Maybe using (Is-just)
 

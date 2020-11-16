@@ -1,5 +1,5 @@
-name: test
+name: example
 depend:
   standard-library
   formal-prelude
-include: .
+include: Example/
