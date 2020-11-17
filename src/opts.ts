@@ -13,6 +13,9 @@ export interface Library {
   repo: string;
 }
 
+export const showLibs = (l: Library[]): string =>
+  l.map(l => `${l.user}/${l.repo}`).join('-');
+
 export interface Options {
   agda: Version;
   stdlib: Version;

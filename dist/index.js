@@ -2525,12 +2525,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getOpts = exports.getDefaults = void 0;
+exports.getOpts = exports.getDefaults = exports.showLibs = void 0;
 const core = __importStar(__webpack_require__(470));
 const fs_1 = __webpack_require__(747);
 const js_yaml_1 = __webpack_require__(414);
 const path_1 = __webpack_require__(622);
 const supported_versions = __importStar(__webpack_require__(447));
+exports.showLibs = (l) => l.map(l => `${l.user}/${l.repo}`).join('-');
 function mkOpts(opts) {
     var _a, _b;
     const pagda = opts.agda;
@@ -58257,6 +58258,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __webpack_require__(622);
+const util_1 = __webpack_require__(669);
 const fs = __importStar(__webpack_require__(747));
 const core = __importStar(__webpack_require__(470));
 const io = __importStar(__webpack_require__(1));
@@ -58265,55 +58267,62 @@ const tc = __importStar(__webpack_require__(533));
 const exec_1 = __webpack_require__(986);
 const github_pages_deploy_action_1 = __importDefault(__webpack_require__(663));
 const opts_1 = __webpack_require__(54);
-(async () => {
-    try {
-        core.info('Preparing to setup an Agda environment...');
-        const home = `${process.env.HOME}`;
-        const cur = `${process.env.GITHUB_WORKSPACE}`;
-        const opts = opts_1.getOpts();
-        core.info(`
-    HOME: ${home}
-    GITHUB_WORKSPACE: ${cur}
-    Options: ${JSON.stringify(opts)}
-    `);
-        // Cache parameters
-        const key = `${opts.agda}-${opts.stdlib}`;
-        const paths = [`${home}/.stack`, `${cur}/.stack-work`, `${cur}/_build/`];
-        // Restore caches
+async function main() {
+    core.info('Preparing to setup an Agda environment...');
+    const home = `${process.env.HOME}`;
+    const cur = `${process.env.GITHUB_WORKSPACE}`;
+    const opts = opts_1.getOpts();
+    core.info(`
+  HOME: ${home}
+  GITHUB_WORKSPACE: ${cur}
+  Options: ${JSON.stringify(opts)}
+  `);
+    // Cache parameters
+    const key = `Agda-v${opts.agda}-stdlib-v${opts.stdlib}-${opts_1.showLibs(opts.libraries)}`;
+    const paths = [`${home}/.stack`, `${cur}/.stack-work`, `${cur}/_build/`];
+    const curlUnzip = async (src, dest) => tc.downloadTool(src, dest).then(p => tc.extractZip(p, home));
+    const append = async (src, dest) => util_1.promisify(fs.appendFile)(src, dest);
+    // Restore caches
+    async function step0() {
         const keyRestored = await c.restoreCache(paths, key, []);
         core.info(`Cache key restored: ${keyRestored}`);
-        // Install Agda and its standard library
+    }
+    // Install Agda and its standard library
+    async function step1() {
+        core.addPath(`${home}/.local/bin/`);
         core.group(`Installing Agda-v${opts.agda}`, async () => {
             const ghc = '8.6.5';
-            core.addPath(`${home}/.local/bin/`);
             await io.mkdirP(`${home}/.agda`);
-            await tc.downloadTool(`https://github.com/agda/agda/archive/v${opts.agda}.zip`, `${home}/agda-${opts.agda}.zip`)
-                .then((p) => tc.extractZip(p, `${home}`));
-            await exec_1.exec('cd');
-            await exec_1.exec('stack', [`--work-dir ${home}/agda-${opts.agda}`, `install --stack-yaml=stack-${ghc}.yaml`]);
+            await curlUnzip(`https://github.com/agda/agda/archive/v${opts.agda}.zip`, `${home}/agda-${opts.agda}.zip`);
+            await exec_1.exec('stack', [
+                `--work-dir ${home}/agda-${opts.agda}`,
+                `install --stack-yaml=stack-${ghc}.yaml`
+            ]);
         });
-        // Install Agda's stdlib
+    }
+    // Install Agda's stdlib
+    async function step2() {
         core.group(`Installing agda/stdlib-v${opts.stdlib}`, async () => {
-            await tc.downloadTool(`https://github.com/agda/agda-stdlib/archive/v${opts.stdlib}.zip`, `${home}/agda-${opts.stdlib}.zip`)
-                .then((p) => tc.extractZip(p, `${home}`));
-            fs.appendFile(`${home}/.agda/libraries`, `${home}/agda-stdlib-${opts.stdlib}/standard-library.agda-lib`, err => {
-                throw err;
-            });
+            await curlUnzip(`https://github.com/agda/agda-stdlib/archive/v${opts.stdlib}.zip`, `${home}/agda-${opts.stdlib}.zip`);
+            await append(`${home}/.agda/libraries`, `${home}/agda-stdlib-${opts.stdlib}/standard-library.agda-lib`);
         });
-        // Install libraries
+    }
+    // Install libraries
+    async function step3() {
         core.group('Installing user-supplied libraries...', async () => {
             for (const l of Object.values(opts.libraries)) {
                 core.info(`Library: ${JSON.stringify(l)}`);
-                await tc.downloadTool(`https://github.com/${l.user}/${l.repo}/archive/master.zip`, `${home}/${l.repo}-master.zip`)
-                    .then((p) => tc.extractZip(p, `${home}`));
-                fs.appendFile(`${home}/.agda/libraries`, `${home}/${l.repo}-master/${l.repo}.agda-lib`, err => {
-                    throw err;
-                });
+                await curlUnzip(`https://github.com/${l.user}/${l.repo}/archive/master.zip`, `${home}/${l.repo}-master.zip`);
+                await append(`${home}/.agda/libraries`, `${home}/${l.repo}-master/${l.repo}.agda-lib`);
             }
         });
-        // Build current Agda project
-        const htmlDir = 'site';
-        const agdaCss = opts.css ? `../${opts.css}` : __webpack_require__.ab + "Agda.css";
+    }
+    // Build current Agda project
+    const htmlDir = 'site';
+    async function step4() {
+        const agdaCss = opts.css
+            ? `../${opts.css}`
+            : __webpack_require__.ab + "Agda.css";
         if (opts.build)
             core.group(`Building Agda project with main file: ${opts.main} and css file: ${agdaCss}`, async () => {
                 await io.mkdirP(`${cur}/${htmlDir}/css`);
@@ -58324,10 +58333,14 @@ const opts_1 = __webpack_require__(54);
                 ]);
                 await io.cp(`${htmlDir}/${opts.main}.html`, `${htmlDir}/index.html`);
             });
-        // Save caches
+    }
+    // Save caches
+    async function step5() {
         const keySaved = await c.saveCache(paths, key);
         core.info(`Cache key saved: ${keySaved}`);
-        // Deploy Github page with Agda HTML code rendered in HTML
+    }
+    // Deploy Github page with Agda HTML code rendered in HTML
+    async function step6() {
         if (opts.build && opts.token)
             // && opts.deployOn.split(':') == [opts.agda, opts.stdlib])
             github_pages_deploy_action_1.default({
@@ -58338,10 +58351,15 @@ const opts_1 = __webpack_require__(54);
                 workspace: cur
             });
     }
-    catch (error) {
-        core.setFailed(error.message);
-    }
-})();
+    return step0()
+        .then(step1)
+        .then(step2)
+        .then(step3)
+        .then(step4)
+        .then(step5)
+        .then(step6);
+}
+main().catch(err => core.setFailed(err.message));
 
 
 /***/ }),
