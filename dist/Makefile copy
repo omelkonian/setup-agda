@@ -1,0 +1,41 @@
+default: agda
+
+AGDA_LOC=$(H)/.local/bin/agda 
+STDLIB_LOC=$(H)/agda-stdlib-$(STDLIB)/src
+LIBS_LOC=$(H)/.agda
+
+$(LIBS_LOC):
+	mkdir -p $(LIBS_LOC)
+
+CSS_LOC=./$(HTML_DIR)/css
+
+$(CSS_LOC):
+	mkdir -p $(CSS_LOC)
+
+agda: $(AGDA_LOC) $(STDLIB_LOC) $(CSS_LOC)
+
+$(AGDA_LOC):
+	curl -L https://github.com/agda/agda/archive/v$(AGDA).zip -o $(H)/agda-$(AGDA).zip
+	unzip -qq $(H)/agda-$(AGDA).zip -d $(H)
+	cd $(H)/agda-$(AGDA);\
+		stack install --stack-yaml=stack-$(GHC).yaml
+
+$(STDLIB_LOC): $(AGDA_LOC) $(LIBS_LOC)
+	curl -L https://github.com/agda/agda-stdlib/archive/v$(STDLIB).zip -o $(H)/agda-stdlib-$(STDLIB).zip
+	unzip -qq $(H)/agda-stdlib-$(STDLIB).zip -d $(H)
+	echo "$(H)/agda-stdlib-$(STDLIB)/standard-library.agda-lib" >> $(LIBS_LOC)/libraries
+
+lib: $(LIB_LOC)
+
+LIB_LOC=$(H)/$(REPO)-master/src
+
+$(LIB_LOC): $(AGDA_LOC), $(LIBS_LOC) 
+	curl -L https://github.com/$(USER)/$(REPO)/archive/master.zip -o $(H)/$(REPO)-master.zip
+	unzip -qq $(H)/$(REPO)-master.zip -d $(H)
+	echo "$(H)/$(REPO)-master/$(REPO).agda-lib" >> $(LIBS/LOC)/libraries
+
+site: $(AGDA_LOC) $(CSS_LOC)
+	agda --html --html-dir=$(HTML_DIR) --css=$(CSS) $(MAIN).agda \
+	  && cp $(HTML_DIR)/$(MAIN).html $(HTML_DIR)/index.html
+
+.phony: agda lib site 
