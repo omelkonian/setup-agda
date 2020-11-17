@@ -1,17 +1,16 @@
-import {spawn} from 'child_process';
-import {promisify} from 'util';
+import spawnAsync from '@expo/spawn-async';
 import {join} from 'path';
 
 import * as core from '@actions/core';
 import * as io from '@actions/io';
-import {restoreCache, saveCache} from '@actions/cache';
+import * as c from '@actions/cache';
 import deploy from '@jamesives/github-pages-deploy-action';
 
 import {getOpts, Options} from './opts';
 
 // Promise-based shell commands
 async function sh(cmd: string): Promise<void> {
-  promisify(spawn)('sh', ['-c', cmd], {stdio: 'inherit'});
+  await spawnAsync('sh', ['-c', cmd], {stdio: 'inherit'});
 }
 
 (async () => {
@@ -29,7 +28,7 @@ async function sh(cmd: string): Promise<void> {
     const paths = [`${home}/.stack`, `${cur}/.stack-work`, `${cur}/_build/`];
 
     // Restore caches
-    const keyRestored = await restoreCache(paths, key, []);
+    const keyRestored = await c.restoreCache(paths, key, []);
     core.info(`Cache key restored: ${keyRestored}`);
 
     // Install Agda and its standard library
@@ -81,7 +80,7 @@ async function sh(cmd: string): Promise<void> {
     }
 
     // Save caches
-    const keySaved = await saveCache(paths, key);
+    const keySaved = await c.saveCache(paths, key);
     core.info(`Cache key saved: ${keySaved}`);
 
     // Deploy Github page with Agda HTML code rendered in HTML
