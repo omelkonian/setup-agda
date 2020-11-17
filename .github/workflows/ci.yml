@@ -28,11 +28,10 @@ jobs:
     name: Agda ${{ matrix.agda }}, stdlib ${{ matrix.stdlib }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
-        os: [ubuntu-latest] #, macOS-latest]
-        agda: [latest] #, '2.6.0']
-        stdlib: [latest] #, '1.2']
+        os: [ubuntu-latest]
+        agda: [latest]
+        stdlib: [latest]
 
     steps:
       - uses: actions/checkout@v2
