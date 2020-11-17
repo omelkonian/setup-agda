@@ -1,27 +1,26 @@
-import spawnAsync from '@expo/spawn-async';
 import {join} from 'path';
+import * as fs from 'fs';
 
 import * as core from '@actions/core';
 import * as io from '@actions/io';
 import * as c from '@actions/cache';
+import * as tc from '@actions/tool-cache';
+import {exec} from '@actions/exec';
 import deploy from '@jamesives/github-pages-deploy-action';
 
-import {getOpts, Options} from './opts';
-
-// Promise-based shell commands
-async function sh(cmd: string): Promise<void> {
-  await spawnAsync('sh', ['-c', cmd], {stdio: 'inherit'});
-}
+import {getOpts} from './opts';
 
 (async () => {
   try {
     core.info('Preparing to setup an Agda environment...');
     const home = `${process.env.HOME}`;
-    core.info(`HOME: ${home}`);
     const cur = `${process.env.GITHUB_WORKSPACE}`;
-    core.info(`GITHUB_WORKSPACE: ${cur}`);
-    const opts: Options = getOpts();
-    core.info(`Options are: ${JSON.stringify(opts)}`);
+    const opts = getOpts();
+    core.info(`
+    HOME: ${home}
+    GITHUB_WORKSPACE: ${cur}
+    Options: ${JSON.stringify(opts)}
+    `);
 
     // Cache parameters
     const key = `${opts.agda}-${opts.stdlib}`;
@@ -32,59 +31,86 @@ async function sh(cmd: string): Promise<void> {
     core.info(`Cache key restored: ${keyRestored}`);
 
     // Install Agda and its standard library
-    const ghc = '8.6.5';
-    core.addPath(`${home}/.local/bin/`);
-    await io.mkdirP(`${home}/.agda`);
-
-    core.info(`Installing Agda-v${opts.agda}`);
-    await sh(`\
-    curl -L https://github.com/agda/agda/archive/v${opts.agda}.zip -o ${home}/agda-${opts.agda}.zip && \
-    unzip -qq ${home}/agda-${opts.agda}.zip -d ${home} && \
-    cd ${home}/agda-${opts.agda} && \
-    stack install --stack-yaml=stack-${ghc}.yaml \
-    `);
+    core.group(`Installing Agda-v${opts.agda}`, async () => {
+      const ghc = '8.6.5';
+      core.addPath(`${home}/.local/bin/`);
+      await io.mkdirP(`${home}/.agda`);
+      await tc
+        .downloadTool(
+          `https://github.com/agda/agda/archive/v${opts.agda}.zip`,
+          `${home}/agda-${opts.agda}.zip`
+        )
+        .then(p => tc.extractZip(p, `${home}`));
+      await exec('cd');
+      await exec('stack', [
+        `--work-dir ${home}/agda-${opts.agda}`,
+        `install --stack-yaml=stack-${ghc}.yaml`
+      ]);
+    });
 
     // Install Agda's stdlib
-    core.info(`Installing agda/stdlib-v${opts.stdlib}`);
-    await sh(`\
-    curl -L https://github.com/agda/agda-stdlib/archive/v${opts.stdlib}.zip -o ${home}/agda-stdlib-${opts.stdlib}.zip && \
-    unzip -qq ${home}/agda-stdlib-${opts.stdlib}.zip -d ${home} && \
-    echo "${home}/agda-stdlib-${opts.stdlib}/standard-library.agda-lib" >> ${home}/.agda/libraries \
-    `);
+    core.group(`Installing agda/stdlib-v${opts.stdlib}`, async () => {
+      await tc
+        .downloadTool(
+          `https://github.com/agda/agda-stdlib/archive/v${opts.stdlib}.zip`,
+          `${home}/agda-${opts.stdlib}.zip`
+        )
+        .then(p => tc.extractZip(p, `${home}`));
+      fs.appendFile(
+        `${home}/.agda/libraries`,
+        `${home}/agda-stdlib-${opts.stdlib}/standard-library.agda-lib`,
+        err => {
+          throw err;
+        }
+      );
+    });
 
     // Install libraries
-    core.info('Installing user-supplied libraries...');
-    Object.values(opts.libraries).forEach(async l => {
-      core.info(`Library: ${JSON.stringify(l)}`);
-      await sh(`\
-      curl -L https://github.com/${l.user}/${l.repo}/archive/master.zip -o ${home}/${l.repo}-master.zip && \
-      unzip -qq ${home}/${l.repo}-master.zip -d ${home} && \
-      echo "${home}/${l.repo}-master/${l.repo}.agda-lib" >> ${home}/.agda/libraries
-      `);
+    core.group('Installing user-supplied libraries...', async () => {
+      for (const l of Object.values(opts.libraries)) {
+        core.info(`Library: ${JSON.stringify(l)}`);
+        await tc
+          .downloadTool(
+            `https://github.com/${l.user}/${l.repo}/archive/master.zip`,
+            `${home}/${l.repo}-master.zip`
+          )
+          .then(p => tc.extractZip(p, `${home}`));
+        fs.appendFile(
+          `${home}/.agda/libraries`,
+          `${home}/${l.repo}-master/${l.repo}.agda-lib`,
+          err => {
+            throw err;
+          }
+        );
+      }
     });
 
     // Build current Agda project
     const htmlDir = 'site';
-    if (opts.build) {
-      const agdaCss = opts.css
-        ? `../${opts.css}`
-        : join(__dirname, '..', 'Agda.css');
-      core.info(
-        `Building Agda project with main file: ${opts.main} and css file: ${agdaCss}`
+    const agdaCss = opts.css
+      ? `../${opts.css}`
+      : join(__dirname, '..', 'Agda.css');
+    if (opts.build)
+      core.group(
+        `Building Agda project with main file: ${opts.main} and css file: ${agdaCss}`,
+        async () => {
+          await io.mkdirP(`${cur}/${htmlDir}/css`);
+          await exec('agda', [
+            `--html --html-dir=${htmlDir}`,
+            `--css=${agdaCss}`,
+            `${opts.main}.agda`
+          ]);
+          await io.cp(`${htmlDir}/${opts.main}.html`, `${htmlDir}/index.html`);
+        }
       );
-      await io.mkdirP(`${cur}/${htmlDir}/css`);
-      await sh(`\
-      agda --html --html-dir=${htmlDir} --css=${agdaCss} ${opts.main}.agda && \
-      cp ${htmlDir}/${opts.main}.html ${htmlDir}/index.html\
-      `);
-    }
 
     // Save caches
     const keySaved = await c.saveCache(paths, key);
     core.info(`Cache key saved: ${keySaved}`);
 
     // Deploy Github page with Agda HTML code rendered in HTML
-    if (opts.token && opts.deployOn.split(':') == [opts.agda, opts.stdlib])
+    if (opts.build && opts.token)
+      // && opts.deployOn.split(':') == [opts.agda, opts.stdlib])
       deploy({
         accessToken: opts.token,
         branch: opts.deployBranch,
