@@ -8,7 +8,7 @@ import * as c from '@actions/cache';
 import {exec} from '@actions/exec';
 import deploy from '@jamesives/github-pages-deploy-action';
 
-import {getOpts, showLibs, Library} from './opts';
+import {getOpts, showLibs} from './opts';
 
 (async () => {
   try {
@@ -32,9 +32,12 @@ import {getOpts, showLibs, Library} from './opts';
     const libsDir = join(home, '.agda');
 
     // Cache parameters
-    const key = `Agda-v${opts.agda}-stdlib-v${opts.stdlib}-${showLibs(
-      opts.libraries
-    )}-${repo}`;
+    const key = `\
+    Agda-v${opts.agda}\
+    -stdlib-v${opts.stdlib}\
+    -${showLibs(opts.libraries)}\
+    -${repo}\
+    `;
     const paths = [`${home}/.stack`, `${cur}/.stack-work`, `${cur}/_build/`];
 
     // Constants
@@ -124,78 +127,46 @@ pre.Agda {
 }
 `;
 
-    async function writeMakefile(): Promise<void> {
-      await promisify(fs.writeFile)('Makefile', Makefile);
-    }
-    async function writeCss(): Promise<void> {
-      await io.mkdirP(cssDir);
-      await promisify(fs.writeFile)(join(cssDir, 'Agda.css'), agdaCss);
-    }
-
-    async function make(target: string, args?: string[]): Promise<void> {
-      await exec(
-        'make',
-        [
-          target
-          // `H="${home}" GHC="8.6.5" AGDA="${opts.agda}" STDLIB="${opts.stdlib}" HTML_DIR="${htmlDir}" CSS="${css}"`
-        ].concat(args || [])
-      );
-    }
-    async function makeAgda(): Promise<void> {
-      await writeMakefile().then(async () => make('agda'));
-    }
-    async function makeLib(l: Library): Promise<void> {
-      core.exportVariable('GIT_USER', l.user);
-      core.exportVariable('GIT_REPO', l.repo);
-      await make('lib');
-    }
-    async function makeSite(): Promise<void> {
-      await writeCss().then(async () => make('site'));
-    }
-
-    // Restore cache
-    await c.restoreCache(paths, key, []);
-
-    // Add ~/.local/bin to PATH
-    core.addPath(`${home}/.local/bin/`);
-
-    // Install Agda and its standard library
-    core.group(
-      `Installing Agda-v${opts.agda} and stdlib-v${opts.stdlib}`,
-      makeAgda
-    );
-
-    // Install libraries
-    core.group('Installing user-supplied libraries...', async () => {
+    const make = async (target: string): Promise<void> => {
+      exec('make', [target]);
+    };
+    const cacheLoad = async (): Promise<void> => {
+      c.restoreCache(paths, key, []);
+    };
+    const cacheSave = async (): Promise<void> => {
+      c.saveCache(paths, key);
+    };
+    async function makeLibs(): Promise<void> {
       await io.mkdirP(libsDir);
       for (const l of Object.values(opts.libraries)) {
         core.info(`Library: ${JSON.stringify(l)}`);
-        makeLib(l);
+        core.exportVariable('GIT_USER', l.user);
+        core.exportVariable('GIT_REPO', l.repo);
+        await make('lib');
       }
-    });
+    }
+    async function sequence(tasks: Array<Promise<void>>): Promise<void> {
+      tasks.reduce(async (acc, k) => acc.finally(async () => k));
+    }
 
-    // Copy default CSS file here
-
-    // Build current Agda project
-    if (opts.build)
-      core.group(
-        `Building Agda project with main file: ${opts.main}`,
-        makeSite
-      );
-
-    // Save caches
-    await c.saveCache(paths, key);
-
-    // Deploy Github page with Agda HTML code rendered in HTML
-    if (opts.build && opts.token)
-      // && opts.deployOn.split(':') == [opts.agda, opts.stdlib])
+    core.addPath(`${home}/.local/bin/`);
+    await sequence([
+      cacheLoad(),
+      promisify(fs.writeFile)('Makefile', Makefile),
+      make('agda'),
+      cacheSave(),
+      makeLibs(),
+      io.mkdirP(cssDir),
+      promisify(fs.writeFile)(join(cssDir, 'Agda.css'), agdaCss),
+      make('site'),
       deploy({
         accessToken: opts.token,
         branch: opts.deployBranch,
         folder: htmlDir,
         silent: true,
         workspace: cur
-      });
+      })
+    ]);
   } catch (error) {
     core.setFailed(error.message);
   }
