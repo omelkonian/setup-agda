@@ -57558,6 +57558,7 @@ const opts_1 = __webpack_require__(54);
     DIRNAME: ${__dirname}
     Options: ${JSON.stringify(opts)}
     `);
+        const ghc = '8.6.5';
         const htmlDir = 'site';
         const cssDir = path_1.join(htmlDir, 'css');
         const css = path_1.join(cssDir, 'Agda.css');
@@ -57570,20 +57571,26 @@ const opts_1 = __webpack_require__(54);
         const Makefile = `
 .phony: agda lib site 
 
-agda:
+agda: ${home}/.local/bin/agda
+
+${home}/.local/bin/agda:
 \tcurl -L https://github.com/agda/agda/archive/v${opts.agda}.zip -o ${home}/agda-${opts.agda}.zip
 \tunzip -qq ${home}/agda-${opts.agda}.zip -d ${home}
-\tcd ${home}/agda-${opts.agda} && stack install --stack-yaml=stack-$(GHC).yaml
+\tcd ${home}/agda-${opts.agda} && stack install --stack-yaml=stack-${ghc}.yaml
 \tcurl -L https://github.com/agda/agda-stdlib/archive/v${opts.stdlib}.zip -o ${home}/agda-stdlib-${opts.stdlib}.zip
 \tunzip -qq ${home}/agda-stdlib-${opts.stdlib}.zip -d ${home}
 \techo "${home}/agda-stdlib-${opts.stdlib}/standard-library.agda-lib" >> ${libsDir}/libraries
 
-lib: 
+lib: ${home}/$(GIT_REPO)-master/$(GIT_REPO).agda-lib
+
+${home}/$(GIT_REPO)-master/$(GIT_REPO).agda-lib:
 \tcurl -L https://github.com/$(GIT_USER)/$(GIT_REPO)/archive/master.zip -o ${home}/$(GIT_REPO)-master.zip
 \tunzip -qq ${home}/$(GIT_REPO)-master.zip -d ${home}
 \techo "${home}/$(GIT_REPO)-master/$(GIT_REPO).agda-lib" >> ${libsDir}/libraries
 
-site:
+site: ${htmlDir}/index.html
+
+${htmlDir}/index.html:
 \tagda --html --html-dir=${htmlDir} --css=${css} ${opts.main}.agda
 \tcp ${htmlDir}/${opts.main}.html ${htmlDir}/index.html
 `;
