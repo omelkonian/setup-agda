@@ -57546,14 +57546,6 @@ const opts_1 = __webpack_require__(54);
 async function sh(cmd) {
     util_1.promisify(child_process_1.spawn)('sh', ['-c', cmd], { stdio: 'inherit' });
 }
-async function restore(c) {
-    const keyRestored = await cache_1.restoreCache(c.paths, c.key, [c.key]);
-    core.info(`Cache key restored: ${keyRestored}`);
-}
-async function save(c) {
-    const keySaved = await cache_1.saveCache(c.paths, c.key);
-    core.info(`Cache key saved: ${keySaved}`);
-}
 (async () => {
     try {
         core.info('Preparing to setup an Agda environment...');
@@ -57564,17 +57556,11 @@ async function save(c) {
         const opts = opts_1.getOpts();
         core.info(`Options are: ${JSON.stringify(opts)}`);
         // Cache parameters
-        const haskellCache = {
-            key: 'stack-cache',
-            paths: [`${home}/.stack`, `${cur}/.stack-work`]
-        };
-        const agdaCache = {
-            key: `${opts.agda}-${opts.stdlib}`,
-            paths: [`${cur}/_build/`]
-        };
+        const key = `${opts.agda}-${opts.stdlib}`;
+        const paths = [`${home}/.stack`, `${cur}/.stack-work`, `${cur}/_build/`];
         // Restore caches
-        await restore(haskellCache);
-        await restore(agdaCache);
+        const keyRestored = await cache_1.restoreCache(paths, key, []);
+        core.info(`Cache key restored: ${keyRestored}`);
         // Install Agda and its standard library
         const ghc = '8.6.5';
         core.addPath(`${home}/.local/bin/`);
@@ -57617,10 +57603,10 @@ async function save(c) {
       `);
         }
         // Save caches
-        await save(haskellCache);
-        await save(agdaCache);
+        const keySaved = await cache_1.saveCache(paths, key);
+        core.info(`Cache key saved: ${keySaved}`);
         // Deploy Github page with Agda HTML code rendered in HTML
-        if (opts.token && (opts.deployOn.split(':') == [opts.agda, opts.stdlib]))
+        if (opts.token && opts.deployOn.split(':') == [opts.agda, opts.stdlib])
             github_pages_deploy_action_1.default({
                 accessToken: opts.token,
                 branch: opts.deployBranch,

@@ -14,22 +14,6 @@ async function sh(cmd: string): Promise<void> {
   promisify(spawn)('sh', ['-c', cmd], {stdio: 'inherit'});
 }
 
-// Caching
-interface Cache {
-  key: string;
-  paths: string[];
-}
-
-async function restore(c: Cache): Promise<void> {
-  const keyRestored = await restoreCache(c.paths, c.key, [c.key]);
-  core.info(`Cache key restored: ${keyRestored}`);
-}
-
-async function save(c: Cache): Promise<void> {
-  const keySaved = await saveCache(c.paths, c.key);
-  core.info(`Cache key saved: ${keySaved}`);
-}
-
 (async () => {
   try {
     core.info('Preparing to setup an Agda environment...');
@@ -41,18 +25,12 @@ async function save(c: Cache): Promise<void> {
     core.info(`Options are: ${JSON.stringify(opts)}`);
 
     // Cache parameters
-    const haskellCache: Cache = {
-      key: 'stack-cache',
-      paths: [`${home}/.stack`, `${cur}/.stack-work`]
-    };
-    const agdaCache: Cache = {
-      key: `${opts.agda}-${opts.stdlib}`,
-      paths: [`${cur}/_build/`]
-    };
+    const key = `${opts.agda}-${opts.stdlib}`;
+    const paths = [`${home}/.stack`, `${cur}/.stack-work`, `${cur}/_build/`];
 
     // Restore caches
-    await restore(haskellCache);
-    await restore(agdaCache);
+    const keyRestored = await restoreCache(paths, key, []);
+    core.info(`Cache key restored: ${keyRestored}`);
 
     // Install Agda and its standard library
     const ghc = '8.6.5';
@@ -103,8 +81,8 @@ async function save(c: Cache): Promise<void> {
     }
 
     // Save caches
-    await save(haskellCache);
-    await save(agdaCache);
+    const keySaved = await saveCache(paths, key);
+    core.info(`Cache key saved: ${keySaved}`);
 
     // Deploy Github page with Agda HTML code rendered in HTML
     if (opts.token && opts.deployOn.split(':') == [opts.agda, opts.stdlib])

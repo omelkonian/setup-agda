@@ -45,8 +45,8 @@ jobs:
         with:
           ghc-version: '8.6.5'
           enable-stack: true
-          stack-no-global: true
-          stack-setup-ghc: true
+          # stack-no-global: true
+          # stack-setup-ghc: true
       - name: Mark Haskell as installed
         run: echo "HASKELL=1" >> $GITHUB_ENV
       - uses: ./
