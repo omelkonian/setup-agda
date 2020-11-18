@@ -2,4 +2,4 @@ name: example
 depend:
   standard-library
   formal-prelude
-include: Example/
+include: .
