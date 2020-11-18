@@ -25,18 +25,14 @@ import spawnAsync from '@expo/spawn-async';
     `);
 
     // Cache parameters
-    const key = `\
-    Agda-v${opts.agda}\
-    -stdlib-v${opts.stdlib}\
-    -${showLibs(opts.libraries)}\
-    -${repo}\
-    `;
+    const key = `Agda-v${opts.agda}-stdlib-v${opts.stdlib}`;
     const restoreKeys = [
       `Agda-v${opts.agda}-stdlib-v${opts.stdlib}-${showLibs(opts.libraries)}`,
       `Agda-v${opts.agda}-stdlib-v${opts.stdlib}`,
       `Agda-v${opts.agda}`
     ];
-    const paths = [`${home}/.stack`, `${cur}/.stack-work`, `${cur}/_build/`];
+    const paths = [`${home}/.stack`, `${home}/.agda`, `${home}/.local`];
+    // , `${cur}/.stack-work`, `${cur}/_build/`];
 
     async function sh(cmd: string): Promise<void> {
       const res = await spawnAsync(cmd, [], {shell: true, stdio: 'inherit'});
@@ -58,10 +54,6 @@ stack install --stack-yaml=stack-${ghc}.yaml \
 `);
     fs.accessSync(`${home}/.local/bin/agda`);
 
-    core.info('Saving cache');
-    const sc = await c.saveCache(paths, key);
-    core.info(`Done: ${sc}`);
-
     core.info(`Installing stdlib-v${opts.stdlib}`);
     const libsDir = join(home, '.agda');
     fs.mkdirSync(libsDir, {recursive: true});
@@ -71,6 +63,10 @@ unzip -qq ${home}/agda-stdlib-${opts.stdlib}.zip -d ${home} && \
 echo "${home}/agda-stdlib-${opts.stdlib}/standard-library.agda-lib" >> ${home}/.agda/libraries \
 `);
     fs.accessSync(join(libsDir, 'libraries'));
+
+    core.info('Saving cache');
+    const sc = await c.saveCache(paths, key);
+    core.info(`Done: ${sc}`);
 
     core.info('Making libraries');
     for (const l of Object.values(opts.libraries)) {

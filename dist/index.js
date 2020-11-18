@@ -59668,18 +59668,14 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
     Options: ${JSON.stringify(opts)}
     `);
         // Cache parameters
-        const key = `\
-    Agda-v${opts.agda}\
-    -stdlib-v${opts.stdlib}\
-    -${opts_1.showLibs(opts.libraries)}\
-    -${repo}\
-    `;
+        const key = `Agda-v${opts.agda}-stdlib-v${opts.stdlib}`;
         const restoreKeys = [
             `Agda-v${opts.agda}-stdlib-v${opts.stdlib}-${opts_1.showLibs(opts.libraries)}`,
             `Agda-v${opts.agda}-stdlib-v${opts.stdlib}`,
             `Agda-v${opts.agda}`
         ];
-        const paths = [`${home}/.stack`, `${cur}/.stack-work`, `${cur}/_build/`];
+        const paths = [`${home}/.stack`, `${home}/.agda`, `${home}/.local`];
+        // , `${cur}/.stack-work`, `${cur}/_build/`];
         async function sh(cmd) {
             const res = await spawn_async_1.default(cmd, [], { shell: true, stdio: 'inherit' });
             core.info(`Done (${cmd}): Status ${res.status}, Signal ${res.signal}`);
@@ -59697,9 +59693,6 @@ cd ${home}/agda-${opts.agda} && \
 stack install --stack-yaml=stack-${ghc}.yaml \
 `);
         fs.accessSync(`${home}/.local/bin/agda`);
-        core.info('Saving cache');
-        const sc = await c.saveCache(paths, key);
-        core.info(`Done: ${sc}`);
         core.info(`Installing stdlib-v${opts.stdlib}`);
         const libsDir = path_1.join(home, '.agda');
         fs.mkdirSync(libsDir, { recursive: true });
@@ -59709,6 +59702,9 @@ unzip -qq ${home}/agda-stdlib-${opts.stdlib}.zip -d ${home} && \
 echo "${home}/agda-stdlib-${opts.stdlib}/standard-library.agda-lib" >> ${home}/.agda/libraries \
 `);
         fs.accessSync(path_1.join(libsDir, 'libraries'));
+        core.info('Saving cache');
+        const sc = await c.saveCache(paths, key);
+        core.info(`Done: ${sc}`);
         core.info('Making libraries');
         for (const l of Object.values(opts.libraries)) {
             core.info(`Library: ${JSON.stringify(l)}`);
