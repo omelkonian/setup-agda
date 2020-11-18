@@ -20,7 +20,7 @@ inputs:
     default: true
   main:
     required: false
-    description: "Entry point for your Agda project without the '.agda' extention, e.g. 'Example.Main'"
+    description: "Entry point for your Agda project without the '.agda' extention, e.g. 'Example/Main'"
     default: 'Main'
   deployOn:
     required: false

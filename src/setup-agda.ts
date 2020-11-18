@@ -91,9 +91,10 @@ echo "${home}/${l.repo}-master/${l.repo}.agda-lib" >> ${home}/.agda/libraries \
     fs.accessSync(css);
 
     core.info('Making site');
+    const mainHtml = opts.main.split('/').join('.');
     await sh(`\
 agda --html --html-dir=${htmlDir} --css=${css} ${opts.main}.agda && \
-cp ${htmlDir}/${opts.main}.html ${htmlDir}/index.html \
+cp ${htmlDir}/${mainHtml}.html ${htmlDir}/index.html \
 `);
     fs.accessSync(`${htmlDir}/index.html`);
 
