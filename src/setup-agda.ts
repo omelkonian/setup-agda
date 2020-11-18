@@ -58,7 +58,7 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
       `dist-newstyle`,
       `${home}/.agda`,
       downloads
-    ]; // TODO cache _build/ etc..
+    ];
 
     async function sh(cmd: string[], cwd?: string): Promise<void> {
       const {status} = await spawnAsync(cmd.join(' && '), [], {
@@ -122,21 +122,16 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
       core.info(`Done: ${sc}`);
     }
 
-    for (const l of Object.values(opts.libraries)) {
-      try {
-        fs.accessSync(`${downloads}/${l.repo}-master`);
-      } catch {
-        core.info(`Library: ${JSON.stringify(l)}`);
-        await sh([
-          `curl -L https://github.com/${l.user}/${l.repo}/archive/master.zip -o ${downloads}/${l.repo}-master.zip`,
-          `unzip -qq ${downloads}/${l.repo}-master.zip -d ${downloads}`,
-          `echo "${downloads}/${l.repo}-master/${l.repo}.agda-lib" >> ${libsPath}`
-        ]);
-      }
-    }
-
     // TODO Use tool-cache and cache libraries/local-builds as well..
+
     if (!opts.build) return;
+
+    // Local cache parameters
+    const lkey = [...keys, repo].join('-');
+    const lpaths = ['_build', 'site', ...paths];
+    core.info('Loading cache');
+    await c.restoreCache(lpaths, lkey, []);
+
     core.info('Writing css files');
     const htmlDir = 'site';
     const cssDir = join(htmlDir, 'css');
@@ -156,6 +151,10 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
     ]);
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 
+    core.info('Saving local cache');
+    const lsc = await c.saveCache(paths, lkey);
+    core.info(`Done: ${lsc}`);
+
     if (!opts.deploy) return;
     core.info('Deploying');
     const deployOpts: NodeActionInterface = {
@@ -167,10 +166,6 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
       workspace: cur
     };
     await deploy({...action, ...deployOpts});
-
-    core.info('Saving cache');
-    const sc = await c.saveCache(paths, key);
-    core.info(`Done: ${sc}`);
   } catch (error) {
     core.setFailed(error.message);
   }

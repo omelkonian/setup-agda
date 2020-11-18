@@ -59699,7 +59699,7 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             `dist-newstyle`,
             `${home}/.agda`,
             downloads
-        ]; // TODO cache _build/ etc..
+        ];
         async function sh(cmd, cwd) {
             const { status } = await spawn_async_1.default(cmd.join(' && '), [], {
                 shell: true,
@@ -59750,22 +59750,18 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             const sc = await c.saveCache(paths, key);
             core.info(`Done: ${sc}`);
         }
-        for (const l of Object.values(opts.libraries)) {
-            try {
-                fs.accessSync(`${downloads}/${l.repo}-master`);
-            }
-            catch {
-                core.info(`Library: ${JSON.stringify(l)}`);
-                await sh([
-                    `curl -L https://github.com/${l.user}/${l.repo}/archive/master.zip -o ${downloads}/${l.repo}-master.zip`,
-                    `unzip -qq ${downloads}/${l.repo}-master.zip -d ${downloads}`,
-                    `echo "${downloads}/${l.repo}-master/${l.repo}.agda-lib" >> ${libsPath}`
-                ]);
-            }
-        }
         // TODO Use tool-cache and cache libraries/local-builds as well..
         if (!opts.build)
             return;
+        // Local cache parameters
+        const lkey = [...keys, repo].join('-');
+        const lpaths = [
+            '_build',
+            'site',
+            ...paths
+        ];
+        core.info('Loading cache');
+        await c.restoreCache(lpaths, lkey, []);
         core.info('Writing css files');
         const htmlDir = 'site';
         const cssDir = path_1.join(htmlDir, 'css');
@@ -59783,6 +59779,9 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             `agda --html --html-dir=${htmlDir} --css=${css} ${opts.main}.agda`
         ]);
         await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
+        core.info('Saving local cache');
+        const lsc = await c.saveCache(paths, lkey);
+        core.info(`Done: ${lsc}`);
         if (!opts.deploy)
             return;
         core.info('Deploying');
@@ -59795,9 +59794,6 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             workspace: cur
         };
         await github_pages_deploy_action_1.default({ ...constants_1.action, ...deployOpts });
-        core.info('Saving cache');
-        const sc = await c.saveCache(paths, key);
-        core.info(`Done: ${sc}`);
     }
     catch (error) {
         core.setFailed(error.message);
