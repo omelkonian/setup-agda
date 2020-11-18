@@ -121,6 +121,20 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
       const sc = await c.saveCache(paths, key);
       core.info(`Done: ${sc}`);
     }
+
+    for (const l of Object.values(opts.libraries)) {
+      try {
+        fs.accessSync(`${downloads}/${l.repo}-master`);
+      } catch {
+        core.info(`Library: ${JSON.stringify(l)}`);
+        await sh([
+          `curl -L https://github.com/${l.user}/${l.repo}/archive/master.zip -o ${downloads}/${l.repo}-master.zip`,
+          `unzip -qq ${downloads}/${l.repo}-master.zip -d ${downloads}`,
+          `echo "${downloads}/${l.repo}-master/${l.repo}.agda-lib" >> ${libsPath}`
+        ]);
+      }
+    }
+
     // TODO Use tool-cache and cache libraries/local-builds as well..
     if (!opts.build) return;
     core.info('Writing css file');
@@ -138,6 +152,10 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
     ]);
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 
+    core.info('Saving cache');
+    const sc = await c.saveCache(paths, key);
+    core.info(`Done: ${sc}`);
+
     if (!opts.deploy) return;
     core.info('Deploying');
     const deployOpts: NodeActionInterface = {
@@ -145,7 +163,7 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
       folder: htmlDir,
       gitHubToken: opts.token,
       repositoryName: repo,
-      silent: false,
+      silent: true,
       workspace: cur
     };
     await deploy({...action, ...deployOpts});
