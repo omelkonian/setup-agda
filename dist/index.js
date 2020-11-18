@@ -57575,33 +57575,6 @@ const child_process_1 = __webpack_require__(129);
             `Agda-v${opts.agda}`
         ];
         const paths = [`${home}/.stack`, `${cur}/.stack-work`, `${cur}/_build/`];
-        // Constants
-        const Makefile = `
-.phony: agda lib site 
-
-agda: ${home}/.local/bin/agda
-
-${home}/.local/bin/agda:
-\tcurl -L https://github.com/agda/agda/archive/v${opts.agda}.zip -o ${home}/agda-${opts.agda}.zip
-\tunzip -qq ${home}/agda-${opts.agda}.zip -d ${home}
-\tcd ${home}/agda-${opts.agda} && stack install --stack-yaml=stack-${ghc}.yaml
-\tcurl -L https://github.com/agda/agda-stdlib/archive/v${opts.stdlib}.zip -o ${home}/agda-stdlib-${opts.stdlib}.zip
-\tunzip -qq ${home}/agda-stdlib-${opts.stdlib}.zip -d ${home}
-\techo "${home}/agda-stdlib-${opts.stdlib}/standard-library.agda-lib" >> ${libsDir}/libraries
-
-lib: ${home}/$(GIT_REPO)-master/$(GIT_REPO).agda-lib
-
-${home}/$(GIT_REPO)-master/$(GIT_REPO).agda-lib:
-\tcurl -L https://github.com/$(GIT_USER)/$(GIT_REPO)/archive/master.zip -o ${home}/$(GIT_REPO)-master.zip
-\tunzip -qq ${home}/$(GIT_REPO)-master.zip -d ${home}
-\techo "${home}/$(GIT_REPO)-master/$(GIT_REPO).agda-lib" >> ${libsDir}/libraries
-
-site: ${htmlDir}/index.html
-
-${htmlDir}/index.html:
-\tagda --html --html-dir=${htmlDir} --css=${css} ${opts.main}.agda
-\tcp ${htmlDir}/${opts.main}.html ${htmlDir}/index.html
-`;
         const agdaCss = `
 /* Aspects. */
 .Agda .Comment       { color: #B22222 }
@@ -57663,26 +57636,39 @@ pre.Agda {
         core.info('Loading cache');
         const k = await c.restoreCache(paths, key, restoreKeys);
         core.info(`Done: ${k}`);
-        core.info('Writing Makefile');
-        fs.writeFileSync('Makefile', Makefile);
-        fs.accessSync('Makefile');
-        core.info('Making agda');
-        const { output } = child_process_1.spawnSync('make agda');
+        core.info(`Installing Agda-v${opts.agda}`);
+        const { output } = child_process_1.spawnSync(`\
+    curl -L https://github.com/agda/agda/archive/v${opts.agda}.zip -o ${home}/agda-${opts.agda}.zip && \
+    zip -qq ${home}/agda-${opts.agda}.zip -d ${home} && \
+    cd ${home}/agda-${opts.agda} && \
+    stack install --stack-yaml=stack-${ghc}.yaml \
+    `);
         core.info(`Done: ${output}`);
-        fs.accessSync(`${home}/.local/bin`);
+        fs.accessSync(`${home}/.local/bin/agda`);
         core.addPath(`${home}/.local/bin/`);
         core.info('Saving cache');
         const sc = c.saveCache(paths, key);
         core.info(`Done: ${sc}`);
+        core.info(`Installing stdlib-v${opts.stdlib}`);
+        const { output: out1 } = child_process_1.spawnSync(`\
+    curl -L https://github.com/agda/agda-stdlib/archive/v${opts.stdlib}.zip -o ${home}/agda-stdlib-${opts.stdlib}.zip && \
+    unzip -qq agda-stdlib-${opts.stdlib}.zip -d ${home} && \
+    echo "${home}/agda-stdlib-${opts.stdlib}/standard-library.agda-lib" >> ${home}/.agda/libraries \
+    `);
+        core.info(`Done(1): ${out1}`);
+        fs.accessSync(libsDir);
         core.info('Making libraries');
         fs.mkdirSync(libsDir, { recursive: true });
         for (const l of Object.values(opts.libraries)) {
             core.info(`Library: ${JSON.stringify(l)}`);
-            core.exportVariable('GIT_USER', l.user);
-            core.exportVariable('GIT_REPO', l.repo);
-            child_process_1.spawnSync('make lib');
+            const { output: out2 } = child_process_1.spawnSync(`\
+      curl -L https://github.com/${l.user}/${l.repo}/archive/master.zip -o ${home}/${l.repo}-master.zip && \
+      unzip -qq ${home}/${l.repo}-master.zip -d ${home} && \
+      echo "${home}/${l.repo}-master/${l.repo}.agda-lib" >> ${home}/.agda/libraries \
+      `);
+            core.info(`Done(2): ${out2}`);
+            fs.accessSync(`${home}/${l.repo}-master/${l.repo}.agda-lib`);
         }
-        fs.accessSync(`${libsDir}/libraries`);
         if (!opts.build)
             return;
         core.info('Writing css file');
@@ -57690,7 +57676,12 @@ pre.Agda {
         fs.writeFileSync(css, agdaCss);
         fs.accessSync(css);
         core.info('Making site');
-        child_process_1.spawnSync('make site');
+        const { output: out3 } = child_process_1.spawnSync(`\
+    agda --html --html-dir=${htmlDir} --css=${css} ${opts.main}.agda && \
+    cp ${htmlDir}/${opts.main}.html ${htmlDir}/index.html \
+    `);
+        core.info(`Done(3): ${out3}`);
+        fs.accessSync(`${htmlDir}/index.html`);
         if (!opts.token)
             return;
         core.info('Deploying');
