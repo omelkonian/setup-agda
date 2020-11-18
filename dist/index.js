@@ -59728,22 +59728,24 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             await sh([`mkdir -p doc`, `touch doc/user-manual.pdf`, `${cabal(1)}`], agdaPath); // stack install --yaml= ...
             fs.accessSync(agdaExe);
             core.info(`Installing ${stdlibv}`);
-            fs.mkdirSync(libsDir, { recursive: true });
+            io.mkdirP(libsDir);
             await sh([
                 `curl -L https://github.com/agda/agda-stdlib/archive/v${opts.stdlib}.zip -o ${stdlibPath}.zip`,
                 `unzip -qq ${stdlibPath}.zip -d ${downloads}`,
                 `echo "${stdlibPath}/standard-library.agda-lib" >> ${libsPath}`
             ]);
-            fs.accessSync(libsPath);
+            fs.accessSync(stdlibPath);
             core.info('Saving cache');
             const sc = await c.saveCache(paths, key);
             core.info(`Done: ${sc}`);
         }
         else {
             // Make sure the cache has everything we need
+            fs.accessSync(downloads);
             fs.accessSync(agdaPath);
             fs.accessSync(agdaExe);
             fs.accessSync(libsPath);
+            fs.accessSync(stdlibPath);
         }
         // Use tool-cache and cache libraries/local-builds as well..
         core.info('Installing libraries');
@@ -59754,13 +59756,17 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
                 `unzip -qq ${downloads}/${l.repo}-master.zip -d ${downloads}`,
                 `echo "${downloads}/${l.repo}-master/${l.repo}.agda-lib" >> ${libsPath}`
             ]);
+            fs.accessSync(`${downloads}/${l.repo}-master`);
         }
+        core.info('Saving cache');
+        const sc = await c.saveCache(paths, key);
+        core.info(`Done: ${sc}`);
         if (!opts.build)
             return;
         core.info('Writing css file');
         const htmlDir = 'site';
         const cssDir = path_1.join(htmlDir, 'css');
-        fs.mkdirSync(cssDir, { recursive: true });
+        await io.mkdirP(cssDir);
         const css = path_1.join(cssDir, 'Agda.css');
         const css0 = opts.css ? `${cur}/${opts.css}` : path_1.join(__dirname, 'Agda.css');
         await io.mv(css0, css);
@@ -59775,13 +59781,15 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
         if (!opts.deploy)
             return;
         core.info('Deploying');
-        await github_pages_deploy_action_1.default({
-            gitHubToken: opts.token,
+        const deployOpts = {
             branch: opts.deployBranch,
             folder: htmlDir,
-            silent: true,
-            workspace: cur
-        });
+            gitHubToken: opts.token,
+            repositoryName: repo,
+            silent: false,
+            workspace: cur,
+        };
+        await github_pages_deploy_action_1.default(deployOpts);
     }
     catch (error) {
         core.setFailed(error.message);

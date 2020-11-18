@@ -8,6 +8,7 @@ import deploy from '@jamesives/github-pages-deploy-action';
 
 import {getOpts, showLibs} from './opts';
 import spawnAsync from '@expo/spawn-async';
+import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/constants';
 
 (async () => {
   try {
@@ -96,22 +97,24 @@ import spawnAsync from '@expo/spawn-async';
       fs.accessSync(agdaExe);
 
       core.info(`Installing ${stdlibv}`);
-      fs.mkdirSync(libsDir, {recursive: true});
+      io.mkdirP(libsDir);
       await sh([
         `curl -L https://github.com/agda/agda-stdlib/archive/v${opts.stdlib}.zip -o ${stdlibPath}.zip`,
         `unzip -qq ${stdlibPath}.zip -d ${downloads}`,
         `echo "${stdlibPath}/standard-library.agda-lib" >> ${libsPath}`
       ]);
-      fs.accessSync(libsPath);
+      fs.accessSync(stdlibPath);
 
       core.info('Saving cache');
       const sc = await c.saveCache(paths, key);
       core.info(`Done: ${sc}`);
     } else {
       // Make sure the cache has everything we need
+      fs.accessSync(downloads);
       fs.accessSync(agdaPath);
       fs.accessSync(agdaExe);
       fs.accessSync(libsPath);
+      fs.accessSync(stdlibPath);
     }
 
     // Use tool-cache and cache libraries/local-builds as well..
@@ -123,13 +126,17 @@ import spawnAsync from '@expo/spawn-async';
         `unzip -qq ${downloads}/${l.repo}-master.zip -d ${downloads}`,
         `echo "${downloads}/${l.repo}-master/${l.repo}.agda-lib" >> ${libsPath}`
       ]);
+      fs.accessSync(`${downloads}/${l.repo}-master`);
     }
+    core.info('Saving cache');
+    const sc = await c.saveCache(paths, key);
+    core.info(`Done: ${sc}`);
 
     if (!opts.build) return;
     core.info('Writing css file');
     const htmlDir = 'site';
     const cssDir = join(htmlDir, 'css');
-    fs.mkdirSync(cssDir, {recursive: true});
+    await io.mkdirP(cssDir);
     const css = join(cssDir, 'Agda.css');
     const css0 = opts.css ? `${cur}/${opts.css}` : join(__dirname, 'Agda.css');
     await io.mv(css0, css);
@@ -145,13 +152,15 @@ import spawnAsync from '@expo/spawn-async';
 
     if (!opts.deploy) return;
     core.info('Deploying');
-    await deploy({
-      gitHubToken: opts.token,
+    const deployOpts: NodeActionInterface = {
       branch: opts.deployBranch,
       folder: htmlDir,
-      silent: true,
+      gitHubToken: opts.token,
+      repositoryName: repo,
+      silent: false,
       workspace: cur
-    });
+    };
+    await deploy(deployOpts);
   } catch (error) {
     core.setFailed(error.message);
   }
