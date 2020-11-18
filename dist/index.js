@@ -59696,8 +59696,9 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             `${home}/.cabal/store`,
             cabalBin,
             `dist-newstyle`,
+            `${home}/.agda`,
             downloads
-        ]; // [`${home}/.stack`, `${home}/.agda`, `${home}/.local`]; // , `${cur}/.stack-work`, `${cur}/_build/`];
+        ];
         async function sh(cmd, cwd) {
             const { status } = await spawn_async_1.default(cmd.join(' && '), [], {
                 shell: true,

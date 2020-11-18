@@ -55,8 +55,9 @@ import spawnAsync from '@expo/spawn-async';
       `${home}/.cabal/store`,
       cabalBin,
       `dist-newstyle`,
+      `${home}/.agda`,
       downloads
-    ]; // [`${home}/.stack`, `${home}/.agda`, `${home}/.local`]; // , `${cur}/.stack-work`, `${cur}/_build/`];
+    ];
 
     async function sh(cmd: string[], cwd?: string): Promise<void> {
       const {status} = await spawnAsync(cmd.join(' && '), [], {
