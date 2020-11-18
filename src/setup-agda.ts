@@ -39,8 +39,8 @@ import spawnAsync from '@expo/spawn-async';
 
     const cabalBin = join(home, '.cabal/bin'); // '~/.local/bin'
     core.addPath(cabalBin);
-    const cabalInstall =
-      "cabal install --overwrite-policy=always --ghc-options='-O2 +RTS -M6G -RTS'";
+    const cabal = (opt: 0 | 1 | 2): string =>
+      `cabal install --overwrite-policy=always --ghc-options='-O${opt} +RTS -M6G -RTS'`;
     const agdaExe = join(cabalBin, 'agda');
 
     // Cache parameters
@@ -59,12 +59,12 @@ import spawnAsync from '@expo/spawn-async';
     ]; // [`${home}/.stack`, `${home}/.agda`, `${home}/.local`]; // , `${cur}/.stack-work`, `${cur}/_build/`];
 
     async function sh(cmd: string[], cwd?: string): Promise<void> {
-      const res = await spawnAsync(cmd.join(' && '), [], {
+      const {status} = await spawnAsync(cmd.join(' && '), [], {
         shell: true,
         stdio: 'inherit',
         cwd: cwd
       });
-      core.info(`Done (${cmd}): Status ${res.status}, Signal ${res.signal}`);
+      core.info(`Done (${cmd}): Status ${status}`);
     }
 
     core.info('Loading cache');
@@ -75,8 +75,8 @@ import spawnAsync from '@expo/spawn-async';
       core.info(`Installing alex/happy`);
       await sh([
         `cabal update`,
-        `${cabalInstall} alex-3.2.5`,
-        `${cabalInstall} happy-1.19.12`
+        `${cabal(2)} alex-3.2.5`,
+        `${cabal(2)} happy-1.19.12`
       ]);
 
       await io.mkdirP(downloads);
@@ -90,7 +90,7 @@ import spawnAsync from '@expo/spawn-async';
 
       core.info(`Installing ${agdav}`);
       await sh(
-        [`mkdir -p doc`, `touch doc/user-manual.pdf`, `${cabalInstall}`],
+        [`mkdir -p doc`, `touch doc/user-manual.pdf`, `${cabal(1)}`],
         agdaPath
       ); // stack install --yaml= ...
       fs.accessSync(agdaExe);
@@ -139,9 +139,9 @@ import spawnAsync from '@expo/spawn-async';
     core.info('Building Agda project and generating HTML');
     const mainHtml = opts.main.split('/').join('.');
     await sh([
-      `agda --html --html-dir=${htmlDir} --css=${css} ${opts.main}.agda`,
-      `cp ${htmlDir}/${mainHtml}.html ${htmlDir}/index.html`
+      `agda --html --html-dir=${htmlDir} --css=${css} ${opts.main}.agda`
     ]);
+    await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
     fs.accessSync(`${htmlDir}/index.html`);
 
     if (!opts.token) return;

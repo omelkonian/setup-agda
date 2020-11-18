@@ -59678,7 +59678,7 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
         const libsPath = path_1.join(libsDir, 'libraries');
         const cabalBin = path_1.join(home, '.cabal/bin'); // '~/.local/bin'
         core.addPath(cabalBin);
-        const cabalInstall = "cabal install --overwrite-policy=always --ghc-options='-O2 +RTS -M6G -RTS'";
+        const cabal = (opt) => `cabal install --overwrite-policy=always --ghc-options='-O${opt} +RTS -M6G -RTS'`;
         const agdaExe = path_1.join(cabalBin, 'agda');
         // Cache parameters
         const keys = [agdav, stdlibv, libsv];
@@ -59695,23 +59695,19 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             downloads
         ]; // [`${home}/.stack`, `${home}/.agda`, `${home}/.local`]; // , `${cur}/.stack-work`, `${cur}/_build/`];
         async function sh(cmd, cwd) {
-            const res = await spawn_async_1.default(cmd.join(' && '), [], {
+            const { status } = await spawn_async_1.default(cmd.join(' && '), [], {
                 shell: true,
                 stdio: 'inherit',
                 cwd: cwd
             });
-            core.info(`Done (${cmd}): Status ${res.status}, Signal ${res.signal}`);
+            core.info(`Done (${cmd}): Status ${status}`);
         }
         core.info('Loading cache');
         const cacheHit = await c.restoreCache(paths, key, restoreKeys);
         core.info(`Done: ${cacheHit}`);
         if (!cacheHit) {
             core.info(`Installing alex/happy`);
-            await sh([
-                `cabal update`,
-                `${cabalInstall} alex-3.2.5`,
-                `${cabalInstall} happy-1.19.12`
-            ]);
+            await sh([`cabal update`, `${cabal(2)} alex-3.2.5`, `${cabal(2)} happy-1.19.12`]);
             await io.mkdirP(downloads);
             core.info(`Downloading ${agdav}`);
             await sh([
@@ -59720,7 +59716,7 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             ]);
             fs.accessSync(agdaPath);
             core.info(`Installing ${agdav}`);
-            await sh([`mkdir -p doc`, `touch doc/user-manual.pdf`, `${cabalInstall}`], agdaPath); // stack install --yaml= ...
+            await sh([`mkdir -p doc`, `touch doc/user-manual.pdf`, `${cabal(1)}`], agdaPath); // stack install --yaml= ...
             fs.accessSync(agdaExe);
             core.info(`Installing ${stdlibv}`);
             fs.mkdirSync(libsDir, { recursive: true });
@@ -59764,8 +59760,8 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
         const mainHtml = opts.main.split('/').join('.');
         await sh([
             `agda --html --html-dir=${htmlDir} --css=${css} ${opts.main}.agda`,
-            `cp ${htmlDir}/${mainHtml}.html ${htmlDir}/index.html`
         ]);
+        await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
         fs.accessSync(`${htmlDir}/index.html`);
         if (!opts.token)
             return;
