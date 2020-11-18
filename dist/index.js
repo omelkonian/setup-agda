@@ -57537,13 +57537,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __webpack_require__(622);
 const fs = __importStar(__webpack_require__(747));
-const util_1 = __webpack_require__(669);
 const core = __importStar(__webpack_require__(470));
-const io = __importStar(__webpack_require__(1));
 const c = __importStar(__webpack_require__(692));
-const exec_1 = __webpack_require__(986);
 const github_pages_deploy_action_1 = __importDefault(__webpack_require__(663));
 const opts_1 = __webpack_require__(54);
+const child_process_1 = __webpack_require__(129);
 (async () => {
     try {
         core.info('Preparing to setup an Agda environment...');
@@ -57662,50 +57660,47 @@ pre.Agda {
   font-size: .85em;
 }
 `;
-        const make = async (target) => {
-            exec_1.exec('make', [target]);
-        };
-        const cacheLoad = async () => {
-            c.restoreCache(paths, key, restoreKeys);
-        };
-        const cacheSave = async () => {
-            c.saveCache(paths, key);
-        };
-        async function makeLibs() {
-            await io.mkdirP(libsDir);
-            for (const l of Object.values(opts.libraries)) {
-                core.info(`Library: ${JSON.stringify(l)}`);
-                core.exportVariable('GIT_USER', l.user);
-                core.exportVariable('GIT_REPO', l.repo);
-                await make('lib');
-            }
+        core.info('Loading cache');
+        const k = await c.restoreCache(paths, key, restoreKeys);
+        core.info(`Done: ${k}`);
+        core.info('Writing Makefile');
+        fs.writeFileSync('Makefile', Makefile);
+        fs.accessSync('Makefile');
+        core.info('Making agda');
+        const { output } = child_process_1.spawnSync('make agda');
+        core.info(`Done: ${output}`);
+        fs.accessSync(`${home}/.local/bin`);
+        core.addPath(`${home}/.local/bin/`);
+        core.info('Saving cache');
+        const sc = c.saveCache(paths, key);
+        core.info(`Done: ${sc}`);
+        core.info('Making libraries');
+        fs.mkdirSync(libsDir, { recursive: true });
+        for (const l of Object.values(opts.libraries)) {
+            core.info(`Library: ${JSON.stringify(l)}`);
+            core.exportVariable('GIT_USER', l.user);
+            core.exportVariable('GIT_REPO', l.repo);
+            child_process_1.spawnSync('make lib');
         }
-        async function task(msg, task) {
-            core.group(msg + '...', async () => {
-                await task;
-            });
-            core.info(msg + '...Done!');
-        }
-        await task('Loading cache', cacheLoad());
-        await task('Writing Makefile', util_1.promisify(fs.writeFile)('Makefile', Makefile));
-        await task('Making agda', make('agda'));
-        await task('Setting path', util_1.promisify(core.addPath)(`${home}/.local/bin/`));
-        await task('Saving cache', cacheSave());
-        await task('Making libraries', makeLibs());
+        fs.accessSync(`${libsDir}/libraries`);
         if (!opts.build)
             return;
-        await task('Creating css directory', io.mkdirP(cssDir));
-        await task('Writing css file', util_1.promisify(fs.writeFile)(path_1.join(cssDir, 'Agda.css'), agdaCss));
-        await task('Making site', make('site'));
+        core.info('Writing css file');
+        fs.mkdirSync(cssDir, { recursive: true });
+        fs.writeFileSync(css, agdaCss);
+        fs.accessSync(css);
+        core.info('Making site');
+        child_process_1.spawnSync('make site');
         if (!opts.token)
             return;
-        await task('Deploying', github_pages_deploy_action_1.default({
+        core.info('Deploying');
+        await github_pages_deploy_action_1.default({
             accessToken: opts.token,
             branch: opts.deployBranch,
             folder: htmlDir,
             silent: true,
             workspace: cur
-        }));
+        });
     }
     catch (error) {
         core.setFailed(error.message);
