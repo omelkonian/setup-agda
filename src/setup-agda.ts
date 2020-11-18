@@ -25,7 +25,6 @@ import spawnAsync from '@expo/spawn-async';
     `);
 
     // Constants
-
     const agdav = `agda-v${opts.agda}`;
     const stdlibv = `agda-stdlib-v${opts.stdlib}`;
     const libsv = showLibs(opts.libraries);
@@ -57,7 +56,7 @@ import spawnAsync from '@expo/spawn-async';
       `dist-newstyle`,
       `${home}/.agda`,
       downloads
-    ];
+    ]; // TODO cache _build/ etc..
 
     async function sh(cmd: string[], cwd?: string): Promise<void> {
       const {status} = await spawnAsync(cmd.join(' && '), [], {
@@ -147,7 +146,7 @@ import spawnAsync from '@expo/spawn-async';
     if (!opts.deploy) return;
     core.info('Deploying');
     await deploy({
-      accessToken: opts.token,
+      gitHubToken: opts.token,
       branch: opts.deployBranch,
       folder: htmlDir,
       silent: true,

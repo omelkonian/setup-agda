@@ -59698,7 +59698,7 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             `dist-newstyle`,
             `${home}/.agda`,
             downloads
-        ];
+        ]; // TODO cache _build/ etc..
         async function sh(cmd, cwd) {
             const { status } = await spawn_async_1.default(cmd.join(' && '), [], {
                 shell: true,
@@ -59776,7 +59776,7 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             return;
         core.info('Deploying');
         await github_pages_deploy_action_1.default({
-            accessToken: opts.token,
+            gitHubToken: opts.token,
             branch: opts.deployBranch,
             folder: htmlDir,
             silent: true,
