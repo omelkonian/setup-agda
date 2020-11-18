@@ -137,13 +137,17 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
 
     // TODO Use tool-cache and cache libraries/local-builds as well..
     if (!opts.build) return;
-    core.info('Writing css file');
+    core.info('Writing css files');
     const htmlDir = 'site';
     const cssDir = join(htmlDir, 'css');
-    await io.mkdirP(cssDir);
     const css = join(cssDir, 'Agda.css');
-    const css0 = opts.css ? `${cur}/${opts.css}` : join(__dirname, 'Agda.css');
-    await io.mv(css0, css);
+
+    if (opts.css) {
+      await io.mkdirP(cssDir);
+      await io.mv(join(cur, opts.css), css);
+    } else {
+      await io.mv(join(__dirname, 'css/'), htmlDir);
+    }
 
     core.info('Building Agda project and generating HTML');
     const mainHtml = opts.main.split('/').join('.');
