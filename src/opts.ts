@@ -31,18 +31,18 @@ export interface Options {
 }
 
 function mkOpts(opts: Options): Options {
-  const pagda = opts.agda;
-  const pstdlib = opts.stdlib;
+  const {agda, stdlib, deploy, token} = opts;
   return {
     ...opts,
     agda:
-      pagda === 'latest'
+      agda === 'latest'
         ? supported_versions.agda[0]
-        : supported_versions.agda.find(v => v.startsWith(pagda)) ?? pagda,
+        : supported_versions.agda.find(v => v.startsWith(agda)) ?? agda,
     stdlib:
-      pstdlib == 'latest'
+      stdlib == 'latest'
         ? supported_versions.stdlib[0]
-        : supported_versions.stdlib.find(v => v.startsWith(pstdlib)) ?? pstdlib
+        : supported_versions.stdlib.find(v => v.startsWith(stdlib)) ?? stdlib,
+    deploy: token ? true : deploy
   };
 }
 

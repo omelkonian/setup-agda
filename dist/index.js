@@ -2423,16 +2423,16 @@ const supported_versions = __importStar(__webpack_require__(447));
 exports.showLibs = (l) => l.map(l => `${l.user}/${l.repo}`).join('-');
 function mkOpts(opts) {
     var _a, _b;
-    const pagda = opts.agda;
-    const pstdlib = opts.stdlib;
+    const { agda, stdlib, deploy, token } = opts;
     return {
         ...opts,
-        agda: pagda === 'latest'
+        agda: agda === 'latest'
             ? supported_versions.agda[0]
-            : (_a = supported_versions.agda.find(v => v.startsWith(pagda))) !== null && _a !== void 0 ? _a : pagda,
-        stdlib: pstdlib == 'latest'
+            : (_a = supported_versions.agda.find(v => v.startsWith(agda))) !== null && _a !== void 0 ? _a : agda,
+        stdlib: stdlib == 'latest'
             ? supported_versions.stdlib[0]
-            : (_b = supported_versions.stdlib.find(v => v.startsWith(pstdlib))) !== null && _b !== void 0 ? _b : pstdlib
+            : (_b = supported_versions.stdlib.find(v => v.startsWith(stdlib))) !== null && _b !== void 0 ? _b : stdlib,
+        deploy: token ? true : deploy
     };
 }
 function getDefaults() {
