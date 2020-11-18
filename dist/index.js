@@ -57571,6 +57571,11 @@ const opts_1 = __webpack_require__(54);
     -${opts_1.showLibs(opts.libraries)}\
     -${repo}\
     `;
+        const restoreKeys = [
+            `Agda-v${opts.agda}-stdlib-v${opts.stdlib}-${opts_1.showLibs(opts.libraries)}`,
+            `Agda-v${opts.agda}-stdlib-v${opts.stdlib}`,
+            `Agda-v${opts.agda}`
+        ];
         const paths = [`${home}/.stack`, `${cur}/.stack-work`, `${cur}/_build/`];
         // Constants
         const Makefile = `
@@ -57661,7 +57666,7 @@ pre.Agda {
             exec_1.exec('make', [target]);
         };
         const cacheLoad = async () => {
-            c.restoreCache(paths, key, []);
+            c.restoreCache(paths, key, restoreKeys);
         };
         const cacheSave = async () => {
             c.saveCache(paths, key);
@@ -57675,27 +57680,32 @@ pre.Agda {
                 await make('lib');
             }
         }
-        async function sequence(tasks) {
-            tasks.reduce(async (acc, k) => acc.finally(async () => k));
+        async function task(msg, task) {
+            core.group(msg + '...', async () => {
+                await task;
+            });
+            core.info(msg + '...Done!');
         }
-        core.addPath(`${home}/.local/bin/`);
-        await sequence([
-            cacheLoad(),
-            util_1.promisify(fs.writeFile)('Makefile', Makefile),
-            make('agda'),
-            cacheSave(),
-            makeLibs(),
-            io.mkdirP(cssDir),
-            util_1.promisify(fs.writeFile)(path_1.join(cssDir, 'Agda.css'), agdaCss),
-            make('site'),
-            github_pages_deploy_action_1.default({
-                accessToken: opts.token,
-                branch: opts.deployBranch,
-                folder: htmlDir,
-                silent: true,
-                workspace: cur
-            })
-        ]);
+        await task('Loading cache', cacheLoad());
+        await task('Writing Makefile', util_1.promisify(fs.writeFile)('Makefile', Makefile));
+        await task('Making agda', make('agda'));
+        await task('Setting path', util_1.promisify(core.addPath)(`${home}/.local/bin/`));
+        await task('Saving cache', cacheSave());
+        await task('Making libraries', makeLibs());
+        if (!opts.build)
+            return;
+        await task('Creating css directory', io.mkdirP(cssDir));
+        await task('Writing css file', util_1.promisify(fs.writeFile)(path_1.join(cssDir, 'Agda.css'), agdaCss));
+        await task('Making site', make('site'));
+        if (!opts.token)
+            return;
+        await task('Deploying', github_pages_deploy_action_1.default({
+            accessToken: opts.token,
+            branch: opts.deployBranch,
+            folder: htmlDir,
+            silent: true,
+            workspace: cur
+        }));
     }
     catch (error) {
         core.setFailed(error.message);
