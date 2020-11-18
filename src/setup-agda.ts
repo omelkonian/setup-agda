@@ -24,21 +24,39 @@ import spawnAsync from '@expo/spawn-async';
     Options: ${JSON.stringify(opts)}
     `);
 
+    // Constants
+
+    const agdav = `agda-v${opts.agda}`;
+    const stdlibv = `agda-stdlib-v${opts.stdlib}`;
+    const libsv = showLibs(opts.libraries);
+
+    const downloads = join(home, 'downloads/');
+    const agdaPath = join(downloads, `agda-${opts.agda}`);
+    const stdlibPath = join(downloads, `agda-stdlib-${opts.stdlib}`);
+
+    const libsDir = join(home, '.agda');
+    const libsPath = join(libsDir, 'libraries');
+
+    const cabalBin = join(home, '.cabal/bin'); // '~/.local/bin'
+    core.addPath(cabalBin);
+    const cabalInstall =
+      "cabal install --overwrite-policy=always --ghc-options='-O2 +RTS -M6G -RTS'";
+    const agdaExe = join(cabalBin, 'agda');
+
     // Cache parameters
-    const key = `Agda-v${opts.agda}-stdlib-v${opts.stdlib}-${showLibs(
-      opts.libraries
-    )}`;
+    const keys = [agdav, stdlibv, libsv];
+    const key = keys.join('-');
     const restoreKeys = [
-      `Agda-v${opts.agda}-stdlib-v${opts.stdlib}-`,
-      `Agda-v${opts.agda}-`
+      keys.slice(0, 2).join('-') + '-',
+      keys.slice(0, 1).join('-') + '-'
     ];
     const paths = [
       `${home}/.cabal/packages`,
       `${home}/.cabal/store`,
-      `${home}/.cabal/bin`,
-      `dist-newstyle`
-    ];
-    // [`${home}/.stack`, `${home}/.agda`, `${home}/.local`]; // , `${cur}/.stack-work`, `${cur}/_build/`];
+      cabalBin,
+      `dist-newstyle`,
+      downloads
+    ]; // [`${home}/.stack`, `${home}/.agda`, `${home}/.local`]; // , `${cur}/.stack-work`, `${cur}/_build/`];
 
     async function sh(cmd: string[], cwd?: string): Promise<void> {
       const res = await spawnAsync(cmd.join(' && '), [], {
@@ -54,57 +72,57 @@ import spawnAsync from '@expo/spawn-async';
     core.info(`Done: ${cacheHit}`);
 
     if (!cacheHit) {
-      core.addPath(`${home}/.cabal/bin`); // `${home}/.local/bin/`
-
       core.info(`Installing alex/happy`);
       await sh([
         `cabal update`,
-        `cabal install --overwrite-policy=always --ghc-options='-O2 +RTS -M6G -RTS' alex-3.2.5`,
-        `cabal install --overwrite-policy=always --ghc-options='-O2 +RTS -M6G -RTS' happy-1.19.12`
+        `${cabalInstall} alex-3.2.5`,
+        `${cabalInstall} happy-1.19.12`
       ]);
-      core.info(`Downloading Agda-${opts.agda}`);
+
+      await io.mkdirP(downloads);
+
+      core.info(`Downloading ${agdav}`);
       await sh([
-        `curl -L https://github.com/agda/agda/archive/v${opts.agda}.zip -o ${home}/agda-${opts.agda}.zip`,
-        `unzip -qq ${home}/agda-${opts.agda}.zip -d ${home}`
+        `curl -L https://github.com/agda/agda/archive/v${opts.agda}.zip -o ${agdaPath}.zip`,
+        `unzip -qq ${agdaPath}.zip -d ${downloads}`
       ]);
-      fs.accessSync(`${home}/agda-${opts.agda}`);
+      fs.accessSync(agdaPath);
 
-      core.info(`Installing Agda-v${opts.agda}`);
-      // stack install --yaml= ...
+      core.info(`Installing ${agdav}`);
       await sh(
-        [
-          `mkdir -p doc`,
-          `touch doc/user-manual.pdf`,
-          `cabal install --overwrite-policy=always --ghc-options='-O1 +RTS -M6G -RTS'`
-        ],
-        `${home}/agda-${opts.agda}`
-      );
-      fs.accessSync(`${home}/.cabal/bin/agda`);
+        [`mkdir -p doc`, `touch doc/user-manual.pdf`, `${cabalInstall}`],
+        agdaPath
+      ); // stack install --yaml= ...
+      fs.accessSync(agdaExe);
 
-      core.info(`Installing stdlib-v${opts.stdlib}`);
-      const libsDir = join(home, '.agda');
+      core.info(`Installing ${stdlibv}`);
       fs.mkdirSync(libsDir, {recursive: true});
       await sh([
-        `curl -L https://github.com/agda/agda-stdlib/archive/v${opts.stdlib}.zip -o ${home}/agda-stdlib-${opts.stdlib}.zip`,
-        `unzip -qq ${home}/agda-stdlib-${opts.stdlib}.zip -d ${home}`,
-        `echo "${home}/agda-stdlib-${opts.stdlib}/standard-library.agda-lib" >> ${home}/.agda/libraries`
+        `curl -L https://github.com/agda/agda-stdlib/archive/v${opts.stdlib}.zip -o ${stdlibPath}.zip`,
+        `unzip -qq ${stdlibPath}.zip -d ${downloads}`,
+        `echo "${stdlibPath}/standard-library.agda-lib" >> ${libsPath}`
       ]);
-      fs.accessSync(join(libsDir, 'libraries'));
+      fs.accessSync(libsPath);
+
+      core.info('Saving cache');
+      const sc = await c.saveCache(paths, key);
+      core.info(`Done: ${sc}`);
+    } else {
+      // Make sure the cache has everything we need
+      fs.accessSync(agdaPath);
+      fs.accessSync(agdaExe);
+      fs.accessSync(libsPath);
     }
 
-    core.info('Saving cache');
-    const sc = await c.saveCache(paths, key);
-    core.info(`Done: ${sc}`);
-
+    // Use tool-cache and cache libraries/local-builds as well..
     core.info('Installing libraries');
     for (const l of Object.values(opts.libraries)) {
       core.info(`Library: ${JSON.stringify(l)}`);
       await sh([
-        `curl -L https://github.com/${l.user}/${l.repo}/archive/master.zip -o ${home}/${l.repo}-master.zip`,
-        `unzip -qq ${home}/${l.repo}-master.zip -d ${home}`,
-        `echo "${home}/${l.repo}-master/${l.repo}.agda-lib" >> ${home}/.agda/libraries`
+        `curl -L https://github.com/${l.user}/${l.repo}/archive/master.zip -o ${downloads}/${l.repo}-master.zip`,
+        `unzip -qq ${downloads}/${l.repo}-master.zip -d ${downloads}`,
+        `echo "${downloads}/${l.repo}-master/${l.repo}.agda-lib" >> ${libsPath}`
       ]);
-      fs.accessSync(`${home}/${l.repo}-master/${l.repo}.agda-lib`);
     }
 
     if (!opts.build) return;
