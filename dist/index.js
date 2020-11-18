@@ -59655,6 +59655,7 @@ const core = __importStar(__webpack_require__(470));
 const io = __importStar(__webpack_require__(1));
 const c = __importStar(__webpack_require__(692));
 const github_pages_deploy_action_1 = __importDefault(__webpack_require__(663));
+const constants_1 = __webpack_require__(549);
 const opts_1 = __webpack_require__(54);
 const spawn_async_1 = __importDefault(__webpack_require__(532));
 (async () => {
@@ -59735,32 +59736,21 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
                 `echo "${stdlibPath}/standard-library.agda-lib" >> ${libsPath}`
             ]);
             fs.accessSync(stdlibPath);
+            core.info('Installing libraries');
+            for (const l of Object.values(opts.libraries)) {
+                core.info(`Library: ${JSON.stringify(l)}`);
+                await sh([
+                    `curl -L https://github.com/${l.user}/${l.repo}/archive/master.zip -o ${downloads}/${l.repo}-master.zip`,
+                    `unzip -qq ${downloads}/${l.repo}-master.zip -d ${downloads}`,
+                    `echo "${downloads}/${l.repo}-master/${l.repo}.agda-lib" >> ${libsPath}`
+                ]);
+                fs.accessSync(`${downloads}/${l.repo}-master`);
+            }
             core.info('Saving cache');
             const sc = await c.saveCache(paths, key);
             core.info(`Done: ${sc}`);
         }
-        else {
-            // Make sure the cache has everything we need
-            fs.accessSync(downloads);
-            fs.accessSync(agdaPath);
-            fs.accessSync(agdaExe);
-            fs.accessSync(libsPath);
-            fs.accessSync(stdlibPath);
-        }
-        // Use tool-cache and cache libraries/local-builds as well..
-        core.info('Installing libraries');
-        for (const l of Object.values(opts.libraries)) {
-            core.info(`Library: ${JSON.stringify(l)}`);
-            await sh([
-                `curl -L https://github.com/${l.user}/${l.repo}/archive/master.zip -o ${downloads}/${l.repo}-master.zip`,
-                `unzip -qq ${downloads}/${l.repo}-master.zip -d ${downloads}`,
-                `echo "${downloads}/${l.repo}-master/${l.repo}.agda-lib" >> ${libsPath}`
-            ]);
-            fs.accessSync(`${downloads}/${l.repo}-master`);
-        }
-        core.info('Saving cache');
-        const sc = await c.saveCache(paths, key);
-        core.info(`Done: ${sc}`);
+        // TODO Use tool-cache and cache libraries/local-builds as well..
         if (!opts.build)
             return;
         core.info('Writing css file');
@@ -59770,14 +59760,10 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
         const css = path_1.join(cssDir, 'Agda.css');
         const css0 = opts.css ? `${cur}/${opts.css}` : path_1.join(__dirname, 'Agda.css');
         await io.mv(css0, css);
-        fs.accessSync(css);
         core.info('Building Agda project and generating HTML');
         const mainHtml = opts.main.split('/').join('.');
-        await sh([
-            `agda --html --html-dir=${htmlDir} --css=${css} ${opts.main}.agda`
-        ]);
+        await sh([`agda --html --html-dir=${htmlDir} --css=${css} ${opts.main}.agda`]);
         await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
-        fs.accessSync(`${htmlDir}/index.html`);
         if (!opts.deploy)
             return;
         core.info('Deploying');
@@ -59787,9 +59773,9 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             gitHubToken: opts.token,
             repositoryName: repo,
             silent: false,
-            workspace: cur,
+            workspace: cur
         };
-        await github_pages_deploy_action_1.default(deployOpts);
+        await github_pages_deploy_action_1.default({ ...constants_1.action, ...deployOpts });
     }
     catch (error) {
         core.setFailed(error.message);

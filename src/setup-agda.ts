@@ -5,6 +5,7 @@ import * as core from '@actions/core';
 import * as io from '@actions/io';
 import * as c from '@actions/cache';
 import deploy from '@jamesives/github-pages-deploy-action';
+import {action} from '@jamesives/github-pages-deploy-action/lib/constants';
 
 import {getOpts, showLibs} from './opts';
 import spawnAsync from '@expo/spawn-async';
@@ -105,33 +106,22 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
       ]);
       fs.accessSync(stdlibPath);
 
+      core.info('Installing libraries');
+      for (const l of Object.values(opts.libraries)) {
+        core.info(`Library: ${JSON.stringify(l)}`);
+        await sh([
+          `curl -L https://github.com/${l.user}/${l.repo}/archive/master.zip -o ${downloads}/${l.repo}-master.zip`,
+          `unzip -qq ${downloads}/${l.repo}-master.zip -d ${downloads}`,
+          `echo "${downloads}/${l.repo}-master/${l.repo}.agda-lib" >> ${libsPath}`
+        ]);
+        fs.accessSync(`${downloads}/${l.repo}-master`);
+      }
+
       core.info('Saving cache');
       const sc = await c.saveCache(paths, key);
       core.info(`Done: ${sc}`);
-    } else {
-      // Make sure the cache has everything we need
-      fs.accessSync(downloads);
-      fs.accessSync(agdaPath);
-      fs.accessSync(agdaExe);
-      fs.accessSync(libsPath);
-      fs.accessSync(stdlibPath);
     }
-
-    // Use tool-cache and cache libraries/local-builds as well..
-    core.info('Installing libraries');
-    for (const l of Object.values(opts.libraries)) {
-      core.info(`Library: ${JSON.stringify(l)}`);
-      await sh([
-        `curl -L https://github.com/${l.user}/${l.repo}/archive/master.zip -o ${downloads}/${l.repo}-master.zip`,
-        `unzip -qq ${downloads}/${l.repo}-master.zip -d ${downloads}`,
-        `echo "${downloads}/${l.repo}-master/${l.repo}.agda-lib" >> ${libsPath}`
-      ]);
-      fs.accessSync(`${downloads}/${l.repo}-master`);
-    }
-    core.info('Saving cache');
-    const sc = await c.saveCache(paths, key);
-    core.info(`Done: ${sc}`);
-
+    // TODO Use tool-cache and cache libraries/local-builds as well..
     if (!opts.build) return;
     core.info('Writing css file');
     const htmlDir = 'site';
@@ -140,7 +130,6 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
     const css = join(cssDir, 'Agda.css');
     const css0 = opts.css ? `${cur}/${opts.css}` : join(__dirname, 'Agda.css');
     await io.mv(css0, css);
-    fs.accessSync(css);
 
     core.info('Building Agda project and generating HTML');
     const mainHtml = opts.main.split('/').join('.');
@@ -148,7 +137,6 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
       `agda --html --html-dir=${htmlDir} --css=${css} ${opts.main}.agda`
     ]);
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
-    fs.accessSync(`${htmlDir}/index.html`);
 
     if (!opts.deploy) return;
     core.info('Deploying');
@@ -160,7 +148,7 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
       silent: false,
       workspace: cur
     };
-    await deploy(deployOpts);
+    await deploy({...action, ...deployOpts});
   } catch (error) {
     core.setFailed(error.message);
   }
