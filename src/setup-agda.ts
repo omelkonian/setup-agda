@@ -27,8 +27,8 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
     `);
 
     // Constants
-    const agdav = `agda-v${opts.agda}`;
-    const stdlibv = `agda-stdlib-v${opts.stdlib}`;
+    const agdav = `Agda-v${opts.agda}`;
+    const stdlibv = `Stdlib-v${opts.stdlib}`;
     const libsv = showLibs(opts.libraries);
 
     const downloads = join(home, 'downloads/');
@@ -52,12 +52,17 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
       keys.slice(0, 1).join('-') + '-'
     ];
     const paths = [
+      // Global
       `${home}/.cabal/packages`,
       `${home}/.cabal/store`,
       cabalBin,
-      `dist-newstyle`,
       `${home}/.agda`,
-      downloads
+      downloads,
+      // Local
+      'dist-newstyle',
+      'dist',
+      '_build',
+      'site'
     ];
 
     async function sh(cmd: string[], cwd?: string): Promise<void> {
@@ -116,21 +121,11 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
         ]);
         fs.accessSync(`${downloads}/${l.repo}-master`);
       }
-
-      core.info('Saving cache');
-      const sc = await c.saveCache(paths, key);
-      core.info(`Done: ${sc}`);
     }
 
     // TODO Use tool-cache and cache libraries/local-builds as well..
 
     if (!opts.build) return;
-
-    // Local cache parameters
-    const lkey = [...keys, repo].join('-');
-    const lpaths = ['_build', 'site', ...paths];
-    core.info('Loading cache');
-    await c.restoreCache(lpaths, lkey, []);
 
     core.info('Writing css files');
     const htmlDir = 'site';
@@ -151,9 +146,9 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
     ]);
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 
-    core.info('Saving local cache');
-    const lsc = await c.saveCache(paths, lkey);
-    core.info(`Done: ${lsc}`);
+    core.info('Saving cache');
+    const sc = await c.saveCache(paths, key);
+    core.info(`Done: ${sc}`);
 
     if (!opts.deploy) return;
     core.info('Deploying');
