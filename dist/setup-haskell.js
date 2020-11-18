@@ -3154,9 +3154,6 @@ async function cabalConfig() {
         // *** Hard-code parameters for setup-haskell ***
         Object.entries({
           'ghc-version': '8.6.5',
-          // 'enable-stack': true,
-          // 'stack-no-global': true,
-          // 'stack-setup-ghc': true
         }).forEach(([k, v]) => v && (process.env[`INPUT_${k.toUpperCase()}`] = `${v}`));
         // **********************************************
 
