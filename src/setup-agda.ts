@@ -152,10 +152,6 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
     ]);
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 
-    core.info('Saving cache');
-    const sc = await c.saveCache(paths, key);
-    core.info(`Done: ${sc}`);
-
     if (!opts.deploy) return;
     core.info('Deploying');
     const deployOpts: NodeActionInterface = {
@@ -167,6 +163,10 @@ import {NodeActionInterface} from '@jamesives/github-pages-deploy-action/lib/con
       workspace: cur
     };
     await deploy({...action, ...deployOpts});
+
+    core.info('Saving cache');
+    const sc = await c.saveCache(paths, key);
+    core.info(`Done: ${sc}`);
   } catch (error) {
     core.setFailed(error.message);
   }

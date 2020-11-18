@@ -59779,9 +59779,6 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             `agda --html --html-dir=${htmlDir} --css=${css} ${opts.main}.agda`
         ]);
         await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
-        core.info('Saving cache');
-        const sc = await c.saveCache(paths, key);
-        core.info(`Done: ${sc}`);
         if (!opts.deploy)
             return;
         core.info('Deploying');
@@ -59794,6 +59791,9 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             workspace: cur
         };
         await github_pages_deploy_action_1.default({ ...constants_1.action, ...deployOpts });
+        core.info('Saving cache');
+        const sc = await c.saveCache(paths, key);
+        core.info(`Done: ${sc}`);
     }
     catch (error) {
         core.setFailed(error.message);
