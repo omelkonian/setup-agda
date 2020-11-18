@@ -22,10 +22,12 @@ export interface Options {
   libraries: Library[];
   build: boolean;
   main: string;
-  deployOn: string;
+  deploy: boolean;
   deployBranch: string;
   token: string;
   css: string;
+  // TODO: add {ghc: Version, cabal: Version}
+  // TODO: add version support for libraries from git repos
 }
 
 function mkOpts(opts: Options): Options {
@@ -53,7 +55,7 @@ export function getDefaults(): Options {
     libraries: parseLibs(yml['libraries'].default),
     build: yml['build'].default,
     main: yml['main'].default,
-    deployOn: yml['deployOn'].default,
+    deploy: yml['deploy'].default,
     deployBranch: yml['deployBranch'].default,
     token: yml['token'].default,
     css: yml['css'].default
@@ -72,22 +74,30 @@ function parseLibs(libs: string): Library[] {
 const parseBoolean = (s: string): boolean => s == 'true';
 
 export function getOpts(): Options {
+  // Parse options
   const def: Options = getDefaults();
   core.debug(`Default options are: ${JSON.stringify(def)}`);
-  const opts: Options = {
+  const opts0: Options = {
     agda: core.getInput('agda-version') || def.agda,
     stdlib: core.getInput('stdlib-version') || def.stdlib,
     libraries: parseLibs(core.getInput('libraries')) || def.libraries,
     build: parseBoolean(core.getInput('build')) || def.build,
     main: core.getInput('main') || def.main,
-    deployOn: core.getInput('deployOn') || def.deployOn,
+    deploy: parseBoolean(core.getInput('deploy')) || def.deploy,
     deployBranch: core.getInput('deployBranch') || def.deployBranch,
     token: core.getInput('token'),
     css: core.getInput('css') || def.css
   };
-  const opts2 = mkOpts(opts);
+  const opts = mkOpts(opts0);
   core.debug(
-    `Options are: ${JSON.stringify(opts)} ~> ${JSON.stringify(opts2)}`
+    `Options are: ${JSON.stringify(opts0)} ~> ${JSON.stringify(opts)}`
   );
-  return opts2;
+
+  // Check that options are consistent
+  if (opts.deploy && !opts.token)
+    throw new Error(
+      'The secret token needs to be supplied when `deploy: true.`'
+    );
+
+  return opts;
 }

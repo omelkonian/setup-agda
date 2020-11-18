@@ -126,7 +126,6 @@ import spawnAsync from '@expo/spawn-async';
     }
 
     if (!opts.build) return;
-
     core.info('Writing css file');
     const htmlDir = 'site';
     const cssDir = join(htmlDir, 'css');
@@ -144,7 +143,7 @@ import spawnAsync from '@expo/spawn-async';
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
     fs.accessSync(`${htmlDir}/index.html`);
 
-    if (!opts.token) return;
+    if (!opts.deploy) return;
     core.info('Deploying');
     await deploy({
       accessToken: opts.token,
