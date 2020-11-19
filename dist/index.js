@@ -59665,7 +59665,7 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
         const cur = process.env.GITHUB_WORKSPACE;
         const repo = process.env.GITHUB_REPOSITORY;
         const opts = opts_1.getOpts();
-        const { agda, stdlib, main } = opts;
+        const { agda, stdlib, main, libraries, css, build } = opts;
         core.info(`
     HOME: ${home}
     GITHUB_WORKSPACE: ${cur}
@@ -59676,7 +59676,7 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
         // Constants
         const agdav = `Agda-v${agda}`;
         const stdlibv = `Stdlib-v${stdlib}`;
-        const libsv = opts_1.showLibs(opts.libraries);
+        const libsv = opts_1.showLibs(libraries);
         const downloads = path_1.join(home, 'downloads/');
         const agdaPath = path_1.join(downloads, `agda-${agda}`);
         const stdlibPath = path_1.join(downloads, `agda-stdlib-${stdlib}`);
@@ -59747,26 +59747,28 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
         core.info(`Downloading ${stdlibv}`);
         await downloadAndExtract(`https://github.com/agda/agda-stdlib/archive/v${stdlib}.zip`, stdlibPath, 'standard-library.agda-lib');
         core.info('Downloading libraries');
-        for (const l of Object.values(opts.libraries)) {
+        for (const l of Object.values(libraries)) {
             core.info(`Library: ${JSON.stringify(l)}`);
             await downloadAndExtract(`https://github.com/${l.user}/${l.repo}/archive/master.zip`, path_1.join(downloads, `${l.repo}-master`), `${l.repo}.agda-lib`);
         }
-        if (!opts.build)
+        if (!build)
             return;
         core.info('Writing css files');
         const htmlDir = 'site';
         const cssDir = path_1.join(htmlDir, 'css');
         await io.mkdirP(cssDir);
-        const css = path_1.join(cssDir, 'Agda.css');
-        if (opts.css) {
-            await io.mv(path_1.join(cur, opts.css), css);
+        const cssFile = css ? path_1.basename(css) : 'Agda.css';
+        if (css) {
+            await io.mv(path_1.join(cur, css), cssDir);
         }
         else {
-            await io.mv(path_1.join(__dirname, 'css/'), htmlDir);
+            await io.mv(path_1.join(__dirname, 'css'), htmlDir);
         }
         core.info('Building Agda project and generating HTML');
         const mainHtml = main.split('/').join('.');
-        await sh([`agda --html --html-dir=${htmlDir} --css=${css} ${main}.agda`]);
+        await sh([
+            `agda --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`
+        ]);
         await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
         if (!opts.deploy)
             return;
@@ -59782,8 +59784,13 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             preserve: true
         });
         core.info('Saving cache');
-        const sc = await c.saveCache(paths, key);
-        core.info(`Done: ${sc}`);
+        try {
+            const sc = await c.saveCache(paths, key);
+            core.info(`Done: ${sc}`);
+        }
+        catch (err) {
+            core.info(`Could not save cache: ${err.message}`);
+        }
     }
     catch (error) {
         core.setFailed(error.message);

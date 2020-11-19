@@ -1,4 +1,4 @@
-import {join} from 'path';
+import {basename, join} from 'path';
 import * as fs from 'fs';
 
 import * as core from '@actions/core';
@@ -9,7 +9,6 @@ import {action} from '@jamesives/github-pages-deploy-action/lib/constants';
 
 import {getOpts, showLibs} from './opts';
 import spawnAsync from '@expo/spawn-async';
-import {} from '@jamesives/github-pages-deploy-action/lib/constants';
 
 (async () => {
   try {
@@ -18,7 +17,7 @@ import {} from '@jamesives/github-pages-deploy-action/lib/constants';
     const cur = process.env.GITHUB_WORKSPACE;
     const repo = process.env.GITHUB_REPOSITORY;
     const opts = getOpts();
-    const {agda, stdlib, main} = opts;
+    const {agda, stdlib, main, libraries, css, build} = opts;
     core.info(`
     HOME: ${home}
     GITHUB_WORKSPACE: ${cur}
@@ -30,7 +29,7 @@ import {} from '@jamesives/github-pages-deploy-action/lib/constants';
     // Constants
     const agdav = `Agda-v${agda}`;
     const stdlibv = `Stdlib-v${stdlib}`;
-    const libsv = showLibs(opts.libraries);
+    const libsv = showLibs(libraries);
 
     const downloads = join(home, 'downloads/');
     const agdaPath = join(downloads, `agda-${agda}`);
@@ -124,7 +123,7 @@ import {} from '@jamesives/github-pages-deploy-action/lib/constants';
     );
 
     core.info('Downloading libraries');
-    for (const l of Object.values(opts.libraries)) {
+    for (const l of Object.values(libraries)) {
       core.info(`Library: ${JSON.stringify(l)}`);
       await downloadAndExtract(
         `https://github.com/${l.user}/${l.repo}/archive/master.zip`,
@@ -133,23 +132,25 @@ import {} from '@jamesives/github-pages-deploy-action/lib/constants';
       );
     }
 
-    if (!opts.build) return;
+    if (!build) return;
 
     core.info('Writing css files');
     const htmlDir = 'site';
     const cssDir = join(htmlDir, 'css');
     await io.mkdirP(cssDir);
-    const css = join(cssDir, 'Agda.css');
+    const cssFile = css ? basename(css) : 'Agda.css';
 
-    if (opts.css) {
-      await io.mv(join(cur, opts.css), css);
+    if (css) {
+      await io.mv(join(cur, css), cssDir);
     } else {
-      await io.mv(join(__dirname, 'css/'), htmlDir);
+      await io.mv(join(__dirname, 'css'), htmlDir);
     }
 
     core.info('Building Agda project and generating HTML');
     const mainHtml = main.split('/').join('.');
-    await sh([`agda --html --html-dir=${htmlDir} --css=${css} ${main}.agda`]);
+    await sh([
+      `agda --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`
+    ]);
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 
     if (!opts.deploy) return;
@@ -166,8 +167,12 @@ import {} from '@jamesives/github-pages-deploy-action/lib/constants';
     });
 
     core.info('Saving cache');
-    const sc = await c.saveCache(paths, key);
-    core.info(`Done: ${sc}`);
+    try {
+      const sc = await c.saveCache(paths, key);
+      core.info(`Done: ${sc}`);
+    } catch (err) {
+      core.info(`Could not save cache: ${err.message}`);
+    }
   } catch (error) {
     core.setFailed(error.message);
   }
