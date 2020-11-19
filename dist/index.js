@@ -59689,9 +59689,10 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
         const cabal = (opt) => `cabal install --overwrite-policy=always --ghc-options='-O${opt} +RTS -M6G -RTS'`;
         const agdaExe = path_1.join(cabalBin, 'agda');
         // Cache parameters
-        const keys = [agdav, stdlibv, libsv];
+        const keys = ['GHC-v8.6.5', agdav, stdlibv, libsv];
         const key = keys.join('-');
         const restoreKeys = [
+            keys.slice(0, 3).join('-') + '-',
             keys.slice(0, 2).join('-') + '-',
             keys.slice(0, 1).join('-') + '-'
         ];
@@ -59705,14 +59706,14 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             // Local
             'dist-newstyle',
             'dist',
-            '_build',
-            'site'
+            '_build'
         ];
         async function sh(...cmds) {
             core.info(`Executing shell command ${cmds.join(' && ')}...`);
             await spawn_async_1.default(cmds.join(' && '), [], { shell: true, stdio: 'inherit' });
             core.info('...done');
         }
+        // TODO use @actions/checkout
         async function curlUnzip(title, src, dest, lib) {
             core.info(`Downloading ${title}...`);
             try {
@@ -59720,7 +59721,7 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
                 core.info('...found in cache');
             }
             catch {
-                await sh(`curl -L ${src} -o ${dest}.zip`, `unzip -qq ${dest}.zip`);
+                await sh(`curl -L ${src} -o ${dest}.zip`, `unzip -qq ${dest}.zip -d ${downloads}`);
                 if (lib)
                     await sh(`echo "${path_1.join(dest, lib)}" >> ${libsPath}`);
                 core.info('...done');
@@ -59766,6 +59767,9 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
         const mainHtml = main.split('/').join('.');
         await sh(`agda --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`);
         await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
+        core.info('Saving cache...');
+        await c.saveCache(paths, key);
+        core.info('...done');
         if (!opts.deploy)
             return;
         await github_pages_deploy_action_1.default({
@@ -59778,9 +59782,6 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             workspace: cur,
             preserve: true
         });
-        core.info('Saving cache...');
-        await c.saveCache(paths, key);
-        core.info('...done');
     }
     catch (error) {
         core.setFailed(error.message);

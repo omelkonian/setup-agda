@@ -47,9 +47,10 @@ import spawnAsync from '@expo/spawn-async';
     const agdaExe = join(cabalBin, 'agda');
 
     // Cache parameters
-    const keys = [agdav, stdlibv, libsv];
+    const keys = ['GHC-v8.6.5', agdav, stdlibv, libsv];
     const key = keys.join('-');
     const restoreKeys = [
+      keys.slice(0, 3).join('-') + '-',
       keys.slice(0, 2).join('-') + '-',
       keys.slice(0, 1).join('-') + '-'
     ];
@@ -63,8 +64,7 @@ import spawnAsync from '@expo/spawn-async';
       // Local
       'dist-newstyle',
       'dist',
-      '_build',
-      'site'
+      '_build'
     ];
 
     async function sh(...cmds: string[]): Promise<void> {
@@ -73,6 +73,7 @@ import spawnAsync from '@expo/spawn-async';
       core.info('...done');
     }
 
+    // TODO use @actions/checkout
     async function curlUnzip(
       title: string,
       src: string,
@@ -84,7 +85,10 @@ import spawnAsync from '@expo/spawn-async';
         fs.accessSync(dest);
         core.info('...found in cache');
       } catch {
-        await sh(`curl -L ${src} -o ${dest}.zip`, `unzip -qq ${dest}.zip`);
+        await sh(
+          `curl -L ${src} -o ${dest}.zip`,
+          `unzip -qq ${dest}.zip -d ${downloads}`
+        );
         if (lib) await sh(`echo "${join(dest, lib)}" >> ${libsPath}`);
         core.info('...done');
       }
@@ -158,6 +162,10 @@ import spawnAsync from '@expo/spawn-async';
     );
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 
+    core.info('Saving cache...');
+    await c.saveCache(paths, key);
+    core.info('...done');
+
     if (!opts.deploy) return;
     await deploy({
       ...action,
@@ -169,10 +177,6 @@ import spawnAsync from '@expo/spawn-async';
       workspace: cur,
       preserve: true
     });
-
-    core.info('Saving cache...');
-    await c.saveCache(paths, key);
-    core.info('...done');
   } catch (error) {
     core.setFailed(error.message);
   }
