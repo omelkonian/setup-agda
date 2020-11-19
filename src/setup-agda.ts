@@ -152,12 +152,7 @@ import {} from '@jamesives/github-pages-deploy-action/lib/constants';
     await sh([`agda --html --html-dir=${htmlDir} --css=${css} ${main}.agda`]);
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 
-    core.info('Saving cache');
-    const sc = await c.saveCache(paths, key);
-    core.info(`Done: ${sc}`);
-
     if (!opts.deploy) return;
-
     core.info('Deploying');
     await deploy({
       ...action,
@@ -169,6 +164,10 @@ import {} from '@jamesives/github-pages-deploy-action/lib/constants';
       workspace: cur,
       preserve: true
     });
+
+    core.info('Saving cache');
+    const sc = await c.saveCache(paths, key);
+    core.info(`Done: ${sc}`);
   } catch (error) {
     core.setFailed(error.message);
   }
