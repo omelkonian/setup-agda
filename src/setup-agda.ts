@@ -30,6 +30,8 @@ import spawnAsync from '@expo/spawn-async';
     const agdav = `Agda-v${agda}`;
     const stdlibv = `Stdlib-v${stdlib}`;
     const libsv = showLibs(libraries);
+    const agdaURL = `https://github.com/agda/agda/archive/v${agda}.zip`;
+    const stdlibURL = `https://github.com/agda/agda-stdlib/archive/v${stdlib}.zip`;
 
     const downloads = join(home, 'downloads/');
     const agdaPath = join(downloads, `agda-${agda}`);
@@ -65,69 +67,72 @@ import spawnAsync from '@expo/spawn-async';
       'site'
     ];
 
-    async function sh(cmd: string[], cwd?: string): Promise<void> {
-      const {status} = await spawnAsync(cmd.join(' && '), [], {
-        shell: true,
-        stdio: 'inherit',
-        cwd: cwd
-      });
-      core.info(`Done (${cmd}): Status ${status}`);
+    async function sh(...cmds: string[]): Promise<void> {
+      core.info(`Executing shell command ${cmds.join(' && ')}...`);
+      await spawnAsync(cmds.join(' && '), [], {shell: true, stdio: 'inherit'});
+      core.info('...done');
     }
-    async function downloadAndExtract(
+
+    async function curlUnzip(
+      title: string,
       src: string,
       dest: string,
       lib?: string
     ): Promise<void> {
+      core.info(`Downloading ${title}...`);
       try {
         fs.accessSync(dest);
+        core.info('...found in cache');
       } catch {
-        await sh([`curl -L ${src} -o ${dest}.zip`, `unzip -qq ${dest}.zip`]);
-        if (lib) await sh([`echo "${join(dest, lib)}" >> ${libsPath}`]);
+        await sh(`curl -L ${src} -o ${dest}.zip`, `unzip -qq ${dest}.zip`);
+        if (lib) await sh(`echo "${join(dest, lib)}" >> ${libsPath}`);
+        core.info('...done');
       }
       // TODO Use tool-cache and cache libraries/local-builds as well..
     }
 
-    core.info('Loading cache');
+    core.info('Loading cache...');
     const cacheHit = await c.restoreCache(paths, key, restoreKeys);
-    core.info(`Done: ${cacheHit}`);
+    core.info(`...${cacheHit ? 'done' : 'not found'}`);
 
     await io.mkdirP(downloads);
     await io.mkdirP(libsDir);
 
-    core.info(`Downloading ${agdav}`);
-    await downloadAndExtract(
-      `https://github.com/agda/agda/archive/v${agda}.zip`,
-      agdaPath
-    );
+    await curlUnzip(agdav, agdaURL, agdaPath);
 
+    core.info(`Installing ${agdav}...`);
     try {
       fs.accessSync(agdaExe);
+      core.info('...found in cache');
     } catch {
-      core.info(`Installing ${agdav}`);
-      await sh([
+      await sh(
         `cabal update`,
         `${cabal(2)} alex-3.2.5`,
         `${cabal(2)} happy-1.19.12`
-      ]);
-      await sh(
-        [`mkdir -p doc`, `touch doc/user-manual.pdf`, `${cabal(1)}`],
-        agdaPath
       );
+      await sh(
+        `cd ${agdaPath}`,
+        `mkdir -p doc`,
+        `touch doc/user-manual.pdf`,
+        `${cabal(1)}`
+      );
+      core.info('... done');
     }
 
-    core.info(`Downloading ${stdlibv}`);
-    await downloadAndExtract(
-      `https://github.com/agda/agda-stdlib/archive/v${stdlib}.zip`,
+    await curlUnzip(
+      stdlibv,
+      stdlibURL,
       stdlibPath,
       'standard-library.agda-lib'
     );
 
-    core.info('Downloading libraries');
     for (const l of Object.values(libraries)) {
-      core.info(`Library: ${JSON.stringify(l)}`);
-      await downloadAndExtract(
-        `https://github.com/${l.user}/${l.repo}/archive/master.zip`,
-        join(downloads, `${l.repo}-master`),
+      const libURL = `https://github.com/${l.user}/${l.repo}/archive/master.zip`;
+      const libDir = join(downloads, `${l.repo}-master`);
+      await curlUnzip(
+        `library ${l.user}/${l.repo} from Github`,
+        libURL,
+        libDir,
         `${l.repo}.agda-lib`
       );
     }
@@ -148,13 +153,12 @@ import spawnAsync from '@expo/spawn-async';
 
     core.info('Building Agda project and generating HTML');
     const mainHtml = main.split('/').join('.');
-    await sh([
+    await sh(
       `agda --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`
-    ]);
+    );
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 
     if (!opts.deploy) return;
-    core.info('Deploying');
     await deploy({
       ...action,
       branch: opts.deployBranch,
@@ -166,13 +170,9 @@ import spawnAsync from '@expo/spawn-async';
       preserve: true
     });
 
-    core.info('Saving cache');
-    try {
-      const sc = await c.saveCache(paths, key);
-      core.info(`Done: ${sc}`);
-    } catch (err) {
-      core.info(`Could not save cache: ${err.message}`);
-    }
+    core.info('Saving cache...');
+    await c.saveCache(paths, key);
+    core.info('...done');
   } catch (error) {
     core.setFailed(error.message);
   }
