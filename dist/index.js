@@ -59768,8 +59768,13 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
         await sh(`agda --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`);
         await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
         core.info('Saving cache...');
-        await c.saveCache(paths, key);
-        core.info('...done');
+        try {
+            await c.saveCache(paths, key);
+            core.info('...done');
+        }
+        catch (err) {
+            core.info(`...${err.message}`);
+        }
         if (!opts.deploy)
             return;
         await github_pages_deploy_action_1.default({

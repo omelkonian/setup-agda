@@ -163,8 +163,12 @@ import spawnAsync from '@expo/spawn-async';
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 
     core.info('Saving cache...');
-    await c.saveCache(paths, key);
-    core.info('...done');
+    try {
+      await c.saveCache(paths, key);
+      core.info('...done');
+    } catch (err) {
+      core.info(`...${err.message}`);
+    }
 
     if (!opts.deploy) return;
     await deploy({
