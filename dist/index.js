@@ -59665,6 +59665,7 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
         const cur = process.env.GITHUB_WORKSPACE;
         const repo = process.env.GITHUB_REPOSITORY;
         const opts = opts_1.getOpts();
+        const { agda, stdlib, main } = opts;
         core.info(`
     HOME: ${home}
     GITHUB_WORKSPACE: ${cur}
@@ -59673,15 +59674,15 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
     Options: ${JSON.stringify(opts)}
     `);
         // Constants
-        const agdav = `Agda-v${opts.agda}`;
-        const stdlibv = `Stdlib-v${opts.stdlib}`;
+        const agdav = `Agda-v${agda}`;
+        const stdlibv = `Stdlib-v${stdlib}`;
         const libsv = opts_1.showLibs(opts.libraries);
         const downloads = path_1.join(home, 'downloads/');
-        const agdaPath = path_1.join(downloads, `agda-${opts.agda}`);
-        const stdlibPath = path_1.join(downloads, `agda-stdlib-${opts.stdlib}`);
+        const agdaPath = path_1.join(downloads, `agda-${agda}`);
+        const stdlibPath = path_1.join(downloads, `agda-stdlib-${stdlib}`);
         const libsDir = path_1.join(home, '.agda');
         const libsPath = path_1.join(libsDir, 'libraries');
-        const cabalBin = path_1.join(home, '.cabal/bin'); // '~/.local/bin'
+        const cabalBin = path_1.join(home, '.cabal/bin');
         core.addPath(cabalBin);
         const cabal = (opt) => `cabal install --overwrite-policy=always --ghc-options='-O${opt} +RTS -M6G -RTS'`;
         const agdaExe = path_1.join(cabalBin, 'agda');
@@ -59713,64 +59714,59 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
             });
             core.info(`Done (${cmd}): Status ${status}`);
         }
+        async function downloadAndExtract(src, dest, lib) {
+            try {
+                fs.accessSync(dest);
+            }
+            catch {
+                await sh([`curl -L ${src} -o ${dest}.zip`, `unzip -qq ${dest}.zip`]);
+                if (lib)
+                    await sh([`echo "${path_1.join(dest, lib)}" >> ${libsPath}`]);
+            }
+            // TODO Use tool-cache and cache libraries/local-builds as well..
+        }
         core.info('Loading cache');
         const cacheHit = await c.restoreCache(paths, key, restoreKeys);
         core.info(`Done: ${cacheHit}`);
-        if (!cacheHit) {
-            core.info(`Installing alex/happy`);
+        await io.mkdirP(downloads);
+        await io.mkdirP(libsDir);
+        core.info(`Downloading ${agdav}`);
+        await downloadAndExtract(`https://github.com/agda/agda/archive/v${agda}.zip`, agdaPath);
+        try {
+            fs.accessSync(agdaExe);
+        }
+        catch {
+            core.info(`Installing ${agdav}`);
             await sh([
                 `cabal update`,
                 `${cabal(2)} alex-3.2.5`,
                 `${cabal(2)} happy-1.19.12`
             ]);
-            await io.mkdirP(downloads);
-            core.info(`Downloading ${agdav}`);
-            await sh([
-                `curl -L https://github.com/agda/agda/archive/v${opts.agda}.zip -o ${agdaPath}.zip`,
-                `unzip -qq ${agdaPath}.zip -d ${downloads}`
-            ]);
-            fs.accessSync(agdaPath);
-            core.info(`Installing ${agdav}`);
-            await sh([`mkdir -p doc`, `touch doc/user-manual.pdf`, `${cabal(1)}`], agdaPath); // stack install --yaml= ...
-            fs.accessSync(agdaExe);
-            core.info(`Installing ${stdlibv}`);
-            io.mkdirP(libsDir);
-            await sh([
-                `curl -L https://github.com/agda/agda-stdlib/archive/v${opts.stdlib}.zip -o ${stdlibPath}.zip`,
-                `unzip -qq ${stdlibPath}.zip -d ${downloads}`,
-                `echo "${stdlibPath}/standard-library.agda-lib" >> ${libsPath}`
-            ]);
-            fs.accessSync(stdlibPath);
-            core.info('Installing libraries');
-            for (const l of Object.values(opts.libraries)) {
-                core.info(`Library: ${JSON.stringify(l)}`);
-                await sh([
-                    `curl -L https://github.com/${l.user}/${l.repo}/archive/master.zip -o ${downloads}/${l.repo}-master.zip`,
-                    `unzip -qq ${downloads}/${l.repo}-master.zip -d ${downloads}`,
-                    `echo "${downloads}/${l.repo}-master/${l.repo}.agda-lib" >> ${libsPath}`
-                ]);
-                fs.accessSync(`${downloads}/${l.repo}-master`);
-            }
+            await sh([`mkdir -p doc`, `touch doc/user-manual.pdf`, `${cabal(1)}`], agdaPath);
         }
-        // TODO Use tool-cache and cache libraries/local-builds as well..
+        core.info(`Downloading ${stdlibv}`);
+        await downloadAndExtract(`https://github.com/agda/agda-stdlib/archive/v${stdlib}.zip`, stdlibPath, 'standard-library.agda-lib');
+        core.info('Downloading libraries');
+        for (const l of Object.values(opts.libraries)) {
+            core.info(`Library: ${JSON.stringify(l)}`);
+            await downloadAndExtract(`https://github.com/${l.user}/${l.repo}/archive/master.zip`, path_1.join(downloads, `${l.repo}-master`), `${l.repo}.agda-lib`);
+        }
         if (!opts.build)
             return;
         core.info('Writing css files');
         const htmlDir = 'site';
         const cssDir = path_1.join(htmlDir, 'css');
+        await io.mkdirP(cssDir);
         const css = path_1.join(cssDir, 'Agda.css');
         if (opts.css) {
-            await io.mkdirP(cssDir);
             await io.mv(path_1.join(cur, opts.css), css);
         }
         else {
             await io.mv(path_1.join(__dirname, 'css/'), htmlDir);
         }
         core.info('Building Agda project and generating HTML');
-        const mainHtml = opts.main.split('/').join('.');
-        await sh([
-            `agda --html --html-dir=${htmlDir} --css=${css} ${opts.main}.agda`
-        ]);
+        const mainHtml = main.split('/').join('.');
+        await sh([`agda --html --html-dir=${htmlDir} --css=${css} ${main}.agda`]);
         await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
         core.info('Saving cache');
         const sc = await c.saveCache(paths, key);
@@ -59778,15 +59774,16 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
         if (!opts.deploy)
             return;
         core.info('Deploying');
-        const deployOpts = {
+        await github_pages_deploy_action_1.default({
+            ...constants_1.action,
             branch: opts.deployBranch,
             folder: htmlDir,
             gitHubToken: opts.token,
             repositoryName: repo,
             silent: true,
-            workspace: cur
-        };
-        await github_pages_deploy_action_1.default({ ...constants_1.action, ...deployOpts });
+            workspace: cur,
+            preserve: true
+        });
     }
     catch (error) {
         core.setFailed(error.message);
