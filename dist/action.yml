@@ -12,7 +12,7 @@ inputs:
     default: 'latest'
   libraries:
     required: false
-    description: 'Provide extra libraries (from git repositories) to install, e.g. "omelkonian:formal-prelude,UlfNorell:agda-prelude".'
+    description: 'Provide extra libraries (from git repositories) to install, e.g. "omelkonian:formal-prelude\n UlfNorell:agda-prelude".'
     default: ''
   build:
     required: false

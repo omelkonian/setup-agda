@@ -162,12 +162,16 @@ import spawnAsync from '@expo/spawn-async';
     );
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 
-    core.info('Saving cache...');
-    try {
-      await c.saveCache(paths, key);
-      core.info('...done');
-    } catch (err) {
-      core.info(`...${err.message}`);
+    if (cacheHit && cacheHit != keys[0]) {
+      core.info('Saving cache...');
+      try {
+        await c.saveCache(paths, key);
+        core.info('...done');
+      } catch (err) {
+        if (err.name === c.ReserveCacheError.name)
+          core.info(`...${err.message}`);
+        else throw err;
+      }
     }
 
     if (!opts.deploy) return;

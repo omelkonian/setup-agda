@@ -67,7 +67,7 @@ function parseLibs(libs: string): Library[] {
     const [usr, rep] = l.split(':');
     return {user: usr, repo: rep};
   };
-  const ls = libs.split(',');
+  const ls = libs.split('\n');
   return ls[0] ? ls.map(parseRepo) : [];
 }
 

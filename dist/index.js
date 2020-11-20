@@ -2456,7 +2456,7 @@ function parseLibs(libs) {
         const [usr, rep] = l.split(':');
         return { user: usr, repo: rep };
     };
-    const ls = libs.split(',');
+    const ls = libs.split('\n');
     return ls[0] ? ls.map(parseRepo) : [];
 }
 const parseBoolean = (s) => s == 'true';
@@ -59767,13 +59767,18 @@ const spawn_async_1 = __importDefault(__webpack_require__(532));
         const mainHtml = main.split('/').join('.');
         await sh(`agda --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`);
         await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
-        core.info('Saving cache...');
-        try {
-            await c.saveCache(paths, key);
-            core.info('...done');
-        }
-        catch (err) {
-            core.info(`...${err.message}`);
+        if (cacheHit && cacheHit != keys[0]) {
+            core.info('Saving cache...');
+            try {
+                await c.saveCache(paths, key);
+                core.info('...done');
+            }
+            catch (err) {
+                if (err.name === c.ReserveCacheError.name)
+                    core.info(`...${err.message}`);
+                else
+                    throw err;
+            }
         }
         if (!opts.deploy)
             return;
