@@ -39,6 +39,6 @@ inputs:
 
 runs:
   using: 'node12'
-  main: 'dist/index.js'
-  pre: 'dist/setup-haskell.js'
+  main: 'dist/setup-agda/index.js'
+  pre: 'dist/setup-haskell/index.js'
   pre-if: env.HASKELL == 0
