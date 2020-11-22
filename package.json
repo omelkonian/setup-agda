@@ -1,13 +1,13 @@
 {
   "name": "setup-agda",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "setup agda action",
   "main": "src/setup-agda.ts",
   "scripts": {
     "build": "tsc && npm run ncc",
     "ncc": "ncc build -o dist/haskell src/setup-haskell.ts && ncc build -o dist/agda src/setup-agda.ts",
-    "test": "jest --coverage",
+    "test": "jest",
     "lint": "eslint **/*.ts --cache",
     "lint-fix": "eslint **/*.ts --cache --fix",
     "format": "prettier --write **/*.ts",

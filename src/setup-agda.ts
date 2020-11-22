@@ -30,6 +30,9 @@ import spawnAsync from '@expo/spawn-async';
     const agdav = `Agda-v${agda}`;
     const stdlibv = `Stdlib-v${stdlib}`;
     const libsv = showLibs(libraries);
+    const setupv = `setup-agda-v${
+      JSON.parse(fs.readFileSync('../package.json', 'utf8')).version
+    }`;
     const agdaURL = `https://github.com/agda/agda/archive/v${agda}.zip`;
     const stdlibURL = `https://github.com/agda/agda-stdlib/archive/v${stdlib}.zip`;
 
@@ -47,9 +50,10 @@ import spawnAsync from '@expo/spawn-async';
     const agdaExe = join(cabalBin, 'agda');
 
     // Cache parameters
-    const keys = ['GHC-v8.6.5', agdav, stdlibv, libsv];
+    const keys = ['GHC-v8.6.5', agdav, stdlibv, libsv, setupv];
     const key = keys.join('-');
     const restoreKeys = [
+      keys.slice(0, 4).join('-') + '-',
       keys.slice(0, 3).join('-') + '-',
       keys.slice(0, 2).join('-') + '-',
       keys.slice(0, 1).join('-') + '-'
