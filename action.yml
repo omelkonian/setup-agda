@@ -12,7 +12,7 @@ inputs:
     default: 'latest'
   libraries:
     required: false
-    description: 'Provide extra libraries (from git repositories) to install, e.g. "omelkonian:formal-prelude\n UlfNorell:agda-prelude".'
+    description: 'Provide extra libraries (from git repositories) to install, e.g. "omelkonian/formal-prelude\n UlfNorell/agda-prelude#compat-2.5.2".'
     default: ''
   build:
     required: false
@@ -39,6 +39,6 @@ inputs:
 
 runs:
   using: 'node12'
-  main: 'dist/setup-agda/index.js'
-  pre: 'dist/setup-haskell/index.js'
+  main: 'dist/index.js'
+  pre: 'dist/setup-haskell/main/index.js'
   pre-if: env.HASKELL == 0

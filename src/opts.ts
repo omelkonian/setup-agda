@@ -11,10 +11,11 @@ export type GitRepo = string;
 export interface Library {
   user: string;
   repo: string;
+  version: string;
 }
 
 export const showLibs = (l: Library[]): string =>
-  l.map(l => `${l.user}/${l.repo}`).join('-');
+  l.map(l => `${l.user}/${l.repo}#${l.version}`).join('-');
 
 export interface Options {
   agda: Version;
@@ -27,7 +28,6 @@ export interface Options {
   token: string;
   css: string;
   // TODO: add {ghc: Version, cabal: Version}
-  // TODO: add version support for libraries from git repos
 }
 
 function mkOpts(opts: Options): Options {
@@ -64,8 +64,13 @@ export function getDefaults(): Options {
 
 function parseLibs(libs: string): Library[] {
   const parseRepo = (l: string): Library => {
-    const [usr, rep] = l.split(':');
-    return {user: usr, repo: rep};
+    const [usr, rep] = l.split('/');
+    const [rep2, ver] = rep.split('#');
+    return {
+      user: usr,
+      repo: rep2,
+      version: ver ? ver : 'master'
+    };
   };
   const ls = libs.split('\n');
   return ls[0] ? ls.map(parseRepo) : [];

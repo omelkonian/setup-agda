@@ -1,8 +1,7 @@
 // *** Hard-coded parameters for setup-haskell ***
-import runHS from 'setup-haskell/dist/lib';
+import runHS from 'setup-haskell';
 
 (async () => {
-  process.env['INPUT_GHC_VERSION'] = '8.6.5';
-  await runHS();
+  await runHS({'ghc-version': '8.6.5'});
 })();
 // **********************************************

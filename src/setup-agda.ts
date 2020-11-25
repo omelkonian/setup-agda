@@ -1,5 +1,6 @@
 import {basename, join} from 'path';
 import * as fs from 'fs';
+import spawnAsync from '@expo/spawn-async';
 
 import * as core from '@actions/core';
 import * as io from '@actions/io';
@@ -8,7 +9,6 @@ import deploy from '@jamesives/github-pages-deploy-action';
 import {action} from '@jamesives/github-pages-deploy-action/lib/constants';
 
 import {getOpts, showLibs} from './opts';
-import spawnAsync from '@expo/spawn-async';
 
 (async () => {
   try {
@@ -30,12 +30,8 @@ import spawnAsync from '@expo/spawn-async';
     const agdav = `Agda-v${agda}`;
     const stdlibv = `Stdlib-v${stdlib}`;
     const libsv = showLibs(libraries);
-    const agdaURL = `https://github.com/agda/agda/archive/v${agda}.zip`;
-    const stdlibURL = `https://github.com/agda/agda-stdlib/archive/v${stdlib}.zip`;
 
-    const downloads = join(home, 'downloads/');
-    const agdaPath = join(downloads, `agda-${agda}`);
-    const stdlibPath = join(downloads, `agda-stdlib-${stdlib}`);
+    const downloads = join(home, 'downloads');
 
     const libsDir = join(home, '.agda');
     const libsPath = join(libsDir, 'libraries');
@@ -50,6 +46,7 @@ import spawnAsync from '@expo/spawn-async';
     const keys = ['GHC-v8.6.5', agdav, stdlibv, libsv];
     const key = keys.join('-');
     const restoreKeys = [
+      keys.slice(0, 4).join('-') + '-',
       keys.slice(0, 3).join('-') + '-',
       keys.slice(0, 2).join('-') + '-',
       keys.slice(0, 1).join('-') + '-'
@@ -73,7 +70,6 @@ import spawnAsync from '@expo/spawn-async';
       core.info('...done');
     }
 
-    // TODO use @actions/checkout
     async function curlUnzip(
       title: string,
       src: string,
@@ -87,7 +83,10 @@ import spawnAsync from '@expo/spawn-async';
       } catch {
         await sh(
           `curl -L ${src} -o ${dest}.zip`,
-          `unzip -qq ${dest}.zip -d ${downloads}`
+          `unzip -qq ${dest}.zip -d ${downloads}`,
+          `export f=$(unzip -Z1 ${dest} | head -n1)`,
+          `cd ${downloads}`,
+          `[ -e ${dest} ] || mv "$f" ${dest}`
         );
         if (lib) await sh(`echo "${join(dest, lib)}" >> ${libsPath}`);
         core.info('...done');
@@ -102,7 +101,9 @@ import spawnAsync from '@expo/spawn-async';
     await io.mkdirP(downloads);
     await io.mkdirP(libsDir);
 
-    await curlUnzip(agdav, agdaURL, agdaPath);
+    const agdaURL = `https://github.com/agda/agda/archive/v${agda}.zip`;
+    const agdaDir = join(downloads, `agda-${agda}`);
+    await curlUnzip(agdav, agdaURL, agdaDir);
 
     core.info(`Installing ${agdav}...`);
     try {
@@ -115,7 +116,7 @@ import spawnAsync from '@expo/spawn-async';
         `${cabal(2)} happy-1.19.12`
       );
       await sh(
-        `cd ${agdaPath}`,
+        `cd ${agdaDir}`,
         `mkdir -p doc`,
         `touch doc/user-manual.pdf`,
         `${cabal(1)}`
@@ -123,18 +124,15 @@ import spawnAsync from '@expo/spawn-async';
       core.info('... done');
     }
 
-    await curlUnzip(
-      stdlibv,
-      stdlibURL,
-      stdlibPath,
-      'standard-library.agda-lib'
-    );
+    const stdlibURL = `https://github.com/agda/agda-stdlib/archive/v${stdlib}.zip`;
+    const stdlibDir = join(downloads, `agda-stdlib-${stdlib}`);
+    await curlUnzip(stdlibv, stdlibURL, stdlibDir, 'standard-library.agda-lib');
 
     for (const l of Object.values(libraries)) {
-      const libURL = `https://github.com/${l.user}/${l.repo}/archive/master.zip`;
-      const libDir = join(downloads, `${l.repo}-master`);
+      const libURL = `https://github.com/${l.user}/${l.repo}/archive/${l.version}.zip`;
+      const libDir = join(downloads, `${l.repo}-${l.version}`);
       await curlUnzip(
-        `library ${l.user}/${l.repo} from Github`,
+        `library ${l.user}/${l.repo}#${l.version} from Github`,
         libURL,
         libDir,
         `${l.repo}.agda-lib`
