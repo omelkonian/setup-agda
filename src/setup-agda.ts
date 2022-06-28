@@ -155,8 +155,9 @@ import {getOpts, showLibs} from './opts';
 
     core.info('Building Agda project and generating HTML');
     const mainHtml = main.split('/').join('.');
+    const rtsOpts = opts.rts ? `+RTS ${opts.rts} -RTS` : '';
     await sh(
-      `agda --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`
+      `agda ${rtsOpts} --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`
     );
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 

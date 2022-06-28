@@ -1926,7 +1926,8 @@ function getDefaults() {
         deploy: yml['deploy'].default,
         deployBranch: yml['deployBranch'].default,
         token: yml['token'].default,
-        css: yml['css'].default
+        css: yml['css'].default,
+        rts: yml['rts'].default
     });
 }
 exports.getDefaults = getDefaults;
@@ -1957,7 +1958,8 @@ function getOpts() {
         deploy: parseBoolean(core.getInput('deploy')) || def.deploy,
         deployBranch: core.getInput('deployBranch') || def.deployBranch,
         token: core.getInput('token'),
-        css: core.getInput('css') || def.css
+        css: core.getInput('css') || def.css,
+        rts: core.getInput('rts') || def.rts
     };
     const opts = mkOpts(opts0);
     core.debug(`Options are: ${JSON.stringify(opts0)} ~> ${JSON.stringify(opts)}`);
@@ -59362,7 +59364,8 @@ const opts_1 = __webpack_require__(54);
         }
         core.info('Building Agda project and generating HTML');
         const mainHtml = main.split('/').join('.');
-        await sh(`agda --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`);
+        const rtsOpts = opts.rts ? `+RTS ${opts.rts} -RTS` : '';
+        await sh(`agda ${rtsOpts} --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`);
         await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
         if (cacheHit && cacheHit != keys[0]) {
             core.info('Saving cache...');

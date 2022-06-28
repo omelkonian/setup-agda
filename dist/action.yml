@@ -36,6 +36,10 @@ inputs:
   css:
     required: false
     description: "Optional .css file to use for HTML-rendered Agda code, a path relative to the project's root."
+  rts:
+    required: false
+    description: "Optional RTS options for GHC."
+    default: ''
 
 runs:
   using: 'node12'
