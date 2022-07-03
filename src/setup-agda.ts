@@ -161,6 +161,21 @@ import {getOpts, showLibs} from './opts';
     );
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 
+    // Add Github ribbons to all HTML files
+    if (opts.ribbon) {
+      const ribbonMsg = 'Github repo';
+      await sh(
+        `find ${htmlDir} -type f -name "*.html" -exec sed -i \
+-e "s%</title>%</title>\
+<link rel=\"stylesheet\" \
+href=\"https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css\"/>%g" \
+-e "s%<body>%<body>\
+<a class=\"github-fork-ribbon\" href=\"https://github.com/${repo}\" \
+data-ribbon=\"${ribbonMsg}\" title=\"${ribbonMsg}\">${ribbonMsg}</a>%g" \
+{} \;`
+      );
+    }
+
     if (cacheHit && cacheHit != keys[0]) {
       core.info('Saving cache...');
       try {

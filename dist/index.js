@@ -1926,6 +1926,7 @@ function getDefaults() {
         deploy: yml['deploy'].default,
         deployBranch: yml['deployBranch'].default,
         token: yml['token'].default,
+        ribbon: yml['ribbon'].default,
         css: yml['css'].default,
         rts: yml['rts'].default
     });
@@ -1958,6 +1959,7 @@ function getOpts() {
         deploy: parseBoolean(core.getInput('deploy')) || def.deploy,
         deployBranch: core.getInput('deployBranch') || def.deployBranch,
         token: core.getInput('token'),
+        ribbon: parseBoolean(core.getInput('ribbon')) || def.ribbon,
         css: core.getInput('css') || def.css,
         rts: core.getInput('rts') || def.rts
     };
@@ -59367,6 +59369,18 @@ const opts_1 = __webpack_require__(54);
         const rtsOpts = opts.rts ? `+RTS ${opts.rts} -RTS` : '';
         await sh(`agda ${rtsOpts} --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`);
         await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
+        // Add Github ribbons to all HTML files
+        if (opts.ribbon) {
+            const ribbonMsg = 'Github repo';
+            await sh(`find ${htmlDir} -type f -name "*.html" -exec sed -i \
+-e "s%</title>%</title>\
+<link rel=\"stylesheet\" \
+href=\"https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css\"/>%g" \
+-e "s%<body>%<body>\
+<a class=\"github-fork-ribbon\" href=\"https://github.com/${repo}\" \
+data-ribbon=\"${ribbonMsg}\" title=\"${ribbonMsg}\">${ribbonMsg}</a>%g" \
+{} \;`);
+        }
         if (cacheHit && cacheHit != keys[0]) {
             core.info('Saving cache...');
             try {

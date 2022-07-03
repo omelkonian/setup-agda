@@ -26,6 +26,7 @@ export interface Options {
   deploy: boolean;
   deployBranch: string;
   token: string;
+  ribbon: boolean;
   css: string;
   rts: string;
   // TODO: add {ghc: Version, cabal: Version}
@@ -59,6 +60,7 @@ export function getDefaults(): Options {
     deploy: yml['deploy'].default,
     deployBranch: yml['deployBranch'].default,
     token: yml['token'].default,
+    ribbon: yml['ribbon'].default,
     css: yml['css'].default,
     rts: yml['rts'].default
   });
@@ -93,6 +95,7 @@ export function getOpts(): Options {
     deploy: parseBoolean(core.getInput('deploy')) || def.deploy,
     deployBranch: core.getInput('deployBranch') || def.deployBranch,
     token: core.getInput('token'),
+    ribbon: parseBoolean(core.getInput('ribbon')) || def.ribbon,
     css: core.getInput('css') || def.css,
     rts: core.getInput('rts') || def.rts
   };
