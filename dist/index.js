@@ -62530,19 +62530,17 @@ ribbon="<a class='github-fork-ribbon'\
 sed -i -e "s%</title>%</title>$ribbonCss%g" -e "s%<body>%<body>$ribbon%g" "$f"; \
 done`);
         }
-        if (cacheHit && cacheHit != keys[0]) {
-            core.info('Saving cache...');
-            try {
-                await c.saveCache(paths, key);
-                core.info('...done');
-            }
-            catch (err) {
-                const error = err;
-                if (error.name === c.ReserveCacheError.name)
-                    core.info(`...${error.message}`);
-                else
-                    throw err;
-            }
+        core.info('Saving cache...');
+        try {
+            await c.saveCache(paths, key);
+            core.info('...done');
+        }
+        catch (err) {
+            const error = err;
+            if (error.name === c.ReserveCacheError.name)
+                core.info(`...${error.message}`);
+            else
+                throw err;
         }
         if (!opts.deploy)
             return;
