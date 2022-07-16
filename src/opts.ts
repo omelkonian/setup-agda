@@ -14,8 +14,8 @@ export interface Library {
   version: string;
 }
 
-export const showLibs = (l: Library[]): string =>
-  l.map(l => `${l.user}/${l.repo}#${l.version}`).join('-');
+export const showLibs = (ls: Library[]): string =>
+  ls.map(l => `${l.user}/${l.repo}#${l.version}`).join('-');
 
 export interface Options {
   agda: Version;
@@ -26,9 +26,11 @@ export interface Options {
   deploy: boolean;
   deployBranch: string;
   token: string;
-  ribbon: boolean;
   css: string;
   rts: string;
+  ribbon: boolean;
+  ribbonMsg: string;
+  ribbonColor: string;
   // TODO: add {ghc: Version, cabal: Version}
 }
 
@@ -49,8 +51,9 @@ function mkOpts(opts: Options): Options {
 }
 
 export function getDefaults(): Options {
-  const yml = load(readFileSync(join(__dirname, '..', 'action.yml'), 'utf8'))
-    .inputs;
+  const yml = load(
+    readFileSync(join(__dirname, '..', 'action.yml'), 'utf8')
+  ).inputs;
   return mkOpts({
     agda: yml['agda-version'].default,
     stdlib: yml['stdlib-version'].default,
@@ -58,11 +61,13 @@ export function getDefaults(): Options {
     build: yml['build'].default,
     main: yml['main'].default,
     deploy: yml['deploy'].default,
-    deployBranch: yml['deployBranch'].default,
+    deployBranch: yml['deploy-branch'].default,
     token: yml['token'].default,
-    ribbon: yml['ribbon'].default,
     css: yml['css'].default,
-    rts: yml['rts'].default
+    rts: yml['rts'].default,
+    ribbon: yml['ribbon'].default,
+    ribbonMsg: yml['ribbon-msg'].default,
+    ribbonColor: yml['ribbon-color'].default
   });
 }
 
@@ -93,11 +98,13 @@ export function getOpts(): Options {
     build: parseBoolean(core.getInput('build')) || def.build,
     main: core.getInput('main') || def.main,
     deploy: parseBoolean(core.getInput('deploy')) || def.deploy,
-    deployBranch: core.getInput('deployBranch') || def.deployBranch,
+    deployBranch: core.getInput('deploy-branch') || def.deployBranch,
     token: core.getInput('token'),
-    ribbon: parseBoolean(core.getInput('ribbon')) || def.ribbon,
     css: core.getInput('css') || def.css,
-    rts: core.getInput('rts') || def.rts
+    rts: core.getInput('rts') || def.rts,
+    ribbon: parseBoolean(core.getInput('ribbon')) || def.ribbon,
+    ribbonMsg: core.getInput('ribbon-msg') || def.ribbonMsg,
+    ribbonColor: core.getInput('ribbon-color') || def.ribbonColor
   };
   const opts = mkOpts(opts0);
   core.debug(

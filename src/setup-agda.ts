@@ -16,6 +16,8 @@ import {getOpts, showLibs} from './opts';
     const home = process.env.HOME;
     const cur = process.env.GITHUB_WORKSPACE;
     const repo = process.env.GITHUB_REPOSITORY;
+    const curBranch =
+      process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME;
     const opts = getOpts();
     const {agda, stdlib, main, libraries, css, build} = opts;
     core.info(`
@@ -163,27 +165,27 @@ import {getOpts, showLibs} from './opts';
 
     // Add Github ribbons to all HTML files
     if (opts.ribbon) {
-      const ribbonMsg = 'Github repo';
       await sh(
-        `find ${htmlDir} -type f -name "*.html" -exec sed -i \
--e 's%</title>%</title>\
-<link rel="stylesheet" \
-href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css"/>%g' \
--e 's%<body>%<body>\
-<a class="github-fork-ribbon" href="https://github.com/${repo}" \
-data-ribbon="${ribbonMsg}" title="${ribbonMsg}">${ribbonMsg}</a>%g' \
-{} \\;`
+        `for f in ${htmlDir}/*.html; do \
+ribbonCss="\
+ <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css'/>\
+ <style>.github-fork-ribbon:before { background-color: ${opts.ribbonColor}; }</style>"; \
+ribbon="<a class='github-fork-ribbon'\
+ href='https://github.com/${repo}/tree/${curBranch}/'\
+ data-ribbon='${opts.ribbonMsg}' title='${opts.ribbonMsg}'>${opts.ribbonMsg}</a>"; \ 
+sed -i -e "s%</title>%</title>$ribbonCss%g" -e "s%<body>%<body>$ribbon%g" "$f"; \
+done`
       );
     }
-
     if (cacheHit && cacheHit != keys[0]) {
       core.info('Saving cache...');
       try {
         await c.saveCache(paths, key);
         core.info('...done');
       } catch (err) {
-        if (err.name === c.ReserveCacheError.name)
-          core.info(`...${err.message}`);
+        const error = err as Error;
+        if (error.name === c.ReserveCacheError.name)
+          core.info(`...${error.message}`);
         else throw err;
       }
     }
@@ -193,13 +195,14 @@ data-ribbon="${ribbonMsg}" title="${ribbonMsg}">${ribbonMsg}</a>%g' \
       ...action,
       branch: opts.deployBranch,
       folder: htmlDir,
-      gitHubToken: opts.token,
+      token: opts.token,
       repositoryName: repo,
       silent: true,
-      workspace: cur,
-      preserve: true
+      workspace: cur
+      // preserve: true
     });
-  } catch (error) {
+  } catch (err) {
+    const error = err as Error;
     core.setFailed(error.message);
   }
 })();

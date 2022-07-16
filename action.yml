@@ -29,11 +29,7 @@ inputs:
   token:
     required: false
     description: 'Secret token for deploying to Github Pages, will not deploy if not set to GITHUB_TOKEN.'
-  ribbon:
-    required: false
-    default: false
-    description: 'Include a Github ribbon on every generated HTML file.'
-  deployBranch:
+  deploy-branch:
     required: false
     description: 'On which branch to deploy the Github page.'
     default: 'gh-pages'
@@ -44,6 +40,18 @@ inputs:
     required: false
     description: 'Optional RTS options for GHC.'
     default: ''
+  ribbon:
+    required: false
+    description: 'Include a Github ribbon on every generated HTML file.'
+    default: false
+  ribbon-msg:
+    required: false
+    description: 'Ribbon message to display.'
+    default: 'Source code on Github'
+  ribbon-color:
+    required: false
+    description: 'Ribbon color (in CSS-compliant format).'
+    default: '#333'
 
 runs:
   using: 'node12'
