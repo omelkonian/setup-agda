@@ -62468,10 +62468,10 @@ const opts_1 = __webpack_require__(54);
             }
             catch {
                 await sh(`curl -L ${src} -o ${dest}.zip`, `unzip -qq ${dest}.zip -d ${downloads}`, `export f=$(unzip -Z1 ${dest} | head -n1)`, `cd ${downloads}`, `[ -e ${dest} ] || mv "$f" ${dest}`);
-                if (lib)
-                    await sh(`echo "${(0, path_1.join)(dest, lib)}" >> ${libsPath}`);
                 core.info('...done');
             }
+            if (lib)
+                await sh(`echo "${(0, path_1.join)(dest, lib)}" >> ${libsPath}`);
             // TODO Use tool-cache and cache libraries/local-builds as well..
         }
         core.info('Loading cache...');
@@ -62492,6 +62492,8 @@ const opts_1 = __webpack_require__(54);
             await sh(`cd ${agdaDir}`, `mkdir -p doc`, `touch doc/user-manual.pdf`, `${cabal(1)}`);
             core.info('... done');
         }
+        await io.rmRF(libsPath); // reset library versions
+        // TODO: cleanup old library versions
         const stdlibURL = `https://github.com/agda/agda-stdlib/archive/v${stdlib}.zip`;
         const stdlibDir = (0, path_1.join)(downloads, `agda-stdlib-${stdlib}`);
         await curlUnzip(stdlibv, stdlibURL, stdlibDir, 'standard-library.agda-lib');
@@ -62530,17 +62532,19 @@ ribbon="<a class='github-fork-ribbon'\
 sed -i -e "s%</title>%</title>$ribbonCss%g" -e "s%<body>%<body>$ribbon%g" "$f"; \
 done`);
         }
-        core.info('Saving cache...');
-        try {
-            await c.saveCache(paths, key);
-            core.info('...done');
-        }
-        catch (err) {
-            const error = err;
-            if (error.name === c.ReserveCacheError.name)
-                core.info(`...${error.message}`);
-            else
-                throw err;
+        if (cacheHit != keys[0]) {
+            core.info('Saving cache...');
+            try {
+                await c.saveCache(paths, key);
+                core.info('...done');
+            }
+            catch (err) {
+                const error = err;
+                if (error.name === c.ReserveCacheError.name)
+                    core.info(`...${error.message}`);
+                else
+                    throw err;
+            }
         }
         if (!opts.deploy)
             return;

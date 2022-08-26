@@ -90,9 +90,9 @@ import {getOpts, showLibs} from './opts';
           `cd ${downloads}`,
           `[ -e ${dest} ] || mv "$f" ${dest}`
         );
-        if (lib) await sh(`echo "${join(dest, lib)}" >> ${libsPath}`);
         core.info('...done');
       }
+      if (lib) await sh(`echo "${join(dest, lib)}" >> ${libsPath}`);
       // TODO Use tool-cache and cache libraries/local-builds as well..
     }
 
@@ -125,6 +125,9 @@ import {getOpts, showLibs} from './opts';
       );
       core.info('... done');
     }
+
+    await io.rmRF(libsPath); // reset library versions
+    // TODO: cleanup old library versions
 
     const stdlibURL = `https://github.com/agda/agda-stdlib/archive/v${stdlib}.zip`;
     const stdlibDir = join(downloads, `agda-stdlib-${stdlib}`);
@@ -178,15 +181,17 @@ done`
       );
     }
 
-    core.info('Saving cache...');
-    try {
-      await c.saveCache(paths, key);
-      core.info('...done');
-    } catch (err) {
-      const error = err as Error;
-      if (error.name === c.ReserveCacheError.name)
-        core.info(`...${error.message}`);
-      else throw err;
+    if (cacheHit != keys[0]) {
+      core.info('Saving cache...');
+      try {
+        await c.saveCache(paths, key);
+        core.info('...done');
+      } catch (err) {
+        const error = err as Error;
+        if (error.name === c.ReserveCacheError.name)
+          core.info(`...${error.message}`);
+        else throw err;
+      }
     }
 
     if (!opts.deploy) return;
