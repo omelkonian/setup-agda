@@ -52,6 +52,10 @@ inputs:
     required: false
     description: 'Ribbon color (in CSS-compliant format).'
     default: '#333'
+  measure-typechecking:
+    required: false
+    description: 'Measure typechecking time for each (by inspecting the generated .agdai files).'
+    default: false
 
 runs:
   using: 'node12'

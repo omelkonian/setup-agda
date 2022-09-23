@@ -161,9 +161,33 @@ import {getOpts, showLibs} from './opts';
     core.info('Building Agda project and generating HTML');
     const mainHtml = main.split('/').join('.');
     const rtsOpts = opts.rts ? `+RTS ${opts.rts} -RTS` : '';
-    await sh(
-      `agda ${rtsOpts} --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`
-    );
+    const agdaCmd = `agda ${rtsOpts} --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`;
+    if (opts.measureTypechecking) {
+      await sh(`
+function displayTimeDiff { \
+  diff=$(($1 - $2)); \
+  echo "$(($diff / 60))m$(($diff % 60))s" \
+}; \
+out='${htmlDir}/typecheck.time'; \
+start=$(date +%s); \
+${agdaCmd}; \
+end=$(date +%s); \ 
+echo "TOTAL: $(displayTimeDiff $end $start)" > $out; \
+is=$(ls -hltr --full-time **/*.agdai | awk '{ \
+  printf("%s>%s %s\n", $9, $6, $7) \
+}'); \
+cur=$start; \
+while IFS= read -r i; do \
+  f=$(echo $i | cut -d'>' -f1 | cut -d'/' -f4- | cut -d'.' -f1); \
+  tv=$(echo $i | cut -d'>' -f2); \
+  t=$(date "+%s" -d "$tv"); \
+  echo "$f: $(displayTimeDiff $t $cur)" >> $out; \
+  cur=$t; \
+done <<< "$is"; \
+echo "Generated typechecking times in $out"`);
+    } else {
+      await sh(agdaCmd);
+    }
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 
     // Add Github ribbons to all HTML files

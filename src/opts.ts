@@ -31,6 +31,7 @@ export interface Options {
   ribbon: boolean;
   ribbonMsg: string;
   ribbonColor: string;
+  measureTypechecking: boolean;
   // TODO: add {ghc: Version, cabal: Version}
 }
 
@@ -67,7 +68,8 @@ export function getDefaults(): Options {
     rts: yml['rts'].default,
     ribbon: yml['ribbon'].default,
     ribbonMsg: yml['ribbon-msg'].default,
-    ribbonColor: yml['ribbon-color'].default
+    ribbonColor: yml['ribbon-color'].default,
+    measureTypechecking: yml['measure-typechecking'].default
   });
 }
 
@@ -91,20 +93,23 @@ export function getOpts(): Options {
   // Parse options
   const def: Options = getDefaults();
   core.debug(`Default options are: ${JSON.stringify(def)}`);
+  const get = core.getInput;
   const opts0: Options = {
-    agda: core.getInput('agda-version') || def.agda,
-    stdlib: core.getInput('stdlib-version') || def.stdlib,
-    libraries: parseLibs(core.getInput('libraries')) || def.libraries,
-    build: parseBoolean(core.getInput('build')) || def.build,
-    main: core.getInput('main') || def.main,
-    deploy: parseBoolean(core.getInput('deploy')) || def.deploy,
-    deployBranch: core.getInput('deploy-branch') || def.deployBranch,
-    token: core.getInput('token'),
-    css: core.getInput('css') || def.css,
-    rts: core.getInput('rts') || def.rts,
-    ribbon: parseBoolean(core.getInput('ribbon')) || def.ribbon,
-    ribbonMsg: core.getInput('ribbon-msg') || def.ribbonMsg,
-    ribbonColor: core.getInput('ribbon-color') || def.ribbonColor
+    agda: get('agda-version') || def.agda,
+    stdlib: get('stdlib-version') || def.stdlib,
+    libraries: parseLibs(get('libraries')) || def.libraries,
+    build: parseBoolean(get('build')) || def.build,
+    main: get('main') || def.main,
+    deploy: parseBoolean(get('deploy')) || def.deploy,
+    deployBranch: get('deploy-branch') || def.deployBranch,
+    token: get('token'),
+    css: get('css') || def.css,
+    rts: get('rts') || def.rts,
+    ribbon: parseBoolean(get('ribbon')) || def.ribbon,
+    ribbonMsg: get('ribbon-msg') || def.ribbonMsg,
+    ribbonColor: get('ribbon-color') || def.ribbonColor,
+    measureTypechecking:
+      parseBoolean(get('measure-typechecking')) || def.measureTypechecking
   };
   const opts = mkOpts(opts0);
   core.debug(

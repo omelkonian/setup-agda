@@ -2068,7 +2068,8 @@ function getDefaults() {
         rts: yml['rts'].default,
         ribbon: yml['ribbon'].default,
         ribbonMsg: yml['ribbon-msg'].default,
-        ribbonColor: yml['ribbon-color'].default
+        ribbonColor: yml['ribbon-color'].default,
+        measureTypechecking: yml['measure-typechecking'].default
     });
 }
 exports.getDefaults = getDefaults;
@@ -2090,20 +2091,22 @@ function getOpts() {
     // Parse options
     const def = getDefaults();
     core.debug(`Default options are: ${JSON.stringify(def)}`);
+    const get = core.getInput;
     const opts0 = {
-        agda: core.getInput('agda-version') || def.agda,
-        stdlib: core.getInput('stdlib-version') || def.stdlib,
-        libraries: parseLibs(core.getInput('libraries')) || def.libraries,
-        build: parseBoolean(core.getInput('build')) || def.build,
-        main: core.getInput('main') || def.main,
-        deploy: parseBoolean(core.getInput('deploy')) || def.deploy,
-        deployBranch: core.getInput('deploy-branch') || def.deployBranch,
-        token: core.getInput('token'),
-        css: core.getInput('css') || def.css,
-        rts: core.getInput('rts') || def.rts,
-        ribbon: parseBoolean(core.getInput('ribbon')) || def.ribbon,
-        ribbonMsg: core.getInput('ribbon-msg') || def.ribbonMsg,
-        ribbonColor: core.getInput('ribbon-color') || def.ribbonColor
+        agda: get('agda-version') || def.agda,
+        stdlib: get('stdlib-version') || def.stdlib,
+        libraries: parseLibs(get('libraries')) || def.libraries,
+        build: parseBoolean(get('build')) || def.build,
+        main: get('main') || def.main,
+        deploy: parseBoolean(get('deploy')) || def.deploy,
+        deployBranch: get('deploy-branch') || def.deployBranch,
+        token: get('token'),
+        css: get('css') || def.css,
+        rts: get('rts') || def.rts,
+        ribbon: parseBoolean(get('ribbon')) || def.ribbon,
+        ribbonMsg: get('ribbon-msg') || def.ribbonMsg,
+        ribbonColor: get('ribbon-color') || def.ribbonColor,
+        measureTypechecking: parseBoolean(get('measure-typechecking')) || def.measureTypechecking
     };
     const opts = mkOpts(opts0);
     core.debug(`Options are: ${JSON.stringify(opts0)} ~> ${JSON.stringify(opts)}`);
@@ -62518,7 +62521,34 @@ const opts_1 = __webpack_require__(54);
         core.info('Building Agda project and generating HTML');
         const mainHtml = main.split('/').join('.');
         const rtsOpts = opts.rts ? `+RTS ${opts.rts} -RTS` : '';
-        await sh(`agda ${rtsOpts} --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`);
+        const agdaCmd = `agda ${rtsOpts} --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`;
+        if (opts.measureTypechecking) {
+            await sh(`
+function displayTimeDiff { \
+  diff=$(($1 - $2)); \
+  echo "$(($diff / 60))m$(($diff % 60))s" \
+}; \
+out='${htmlDir}/typecheck.time'; \
+start=$(date +%s); \
+${agdaCmd}; \
+end=$(date +%s); \ 
+echo "TOTAL: $(displayTimeDiff $end $start)" > $out; \
+is=$(ls -hltr --full-time **/*.agdai | awk '{ \
+  printf("%s>%s %s\n", $9, $6, $7) \
+}'); \
+cur=$start; \
+while IFS= read -r i; do \
+  f=$(echo $i | cut -d'>' -f1 | cut -d'/' -f4- | cut -d'.' -f1); \
+  tv=$(echo $i | cut -d'>' -f2); \
+  t=$(date "+%s" -d "$tv"); \
+  echo "$f: $(displayTimeDiff $t $cur)" >> $out; \
+  cur=$t; \
+done <<< "$is"; \
+echo "Generated typechecking times in $out"`);
+        }
+        else {
+            await sh(agdaCmd);
+        }
         await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
         // Add Github ribbons to all HTML files
         if (opts.ribbon) {
