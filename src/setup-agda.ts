@@ -67,9 +67,9 @@ import {getOpts, showLibs} from './opts';
     ];
 
     async function sh(...cmds: string[]): Promise<void> {
-      core.info(`Executing shell command ${cmds.join(' && ')}...`);
+      core.debug(`$ ${cmds.join(' && ')}...`);
       await spawnAsync(cmds.join(' && '), [], {shell: true, stdio: 'inherit'});
-      core.info('...done');
+      core.debug('...done');
     }
 
     async function curlUnzip(

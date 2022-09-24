@@ -62459,9 +62459,9 @@ const opts_1 = __webpack_require__(54);
             '_build'
         ];
         async function sh(...cmds) {
-            core.info(`Executing shell command ${cmds.join(' && ')}...`);
+            core.debug(`$ ${cmds.join(' && ')}...`);
             await (0, spawn_async_1.default)(cmds.join(' && '), [], { shell: true, stdio: 'inherit' });
-            core.info('...done');
+            core.debug('...done');
         }
         async function curlUnzip(title, src, dest, lib) {
             core.info(`Downloading ${title}...`);
