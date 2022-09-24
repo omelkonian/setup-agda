@@ -1,4 +1,5 @@
 #!/bin/bash
+shopt -s globstar
 agdaCmd=$1 && shift
 out=$1 && shift
 
@@ -8,11 +9,11 @@ function displayTimeDiff {
 }
 
 start=$(date +%s)
+rm -rf _build/
 $agdaCmd
 end=$(date +%s)
 echo "Writing individual times to: $out..."
 echo "TOTAL: $(displayTimeDiff $end $start)" > $out
-shopt -s globstar
 is=$(ls -hltr --full-time _build/**/*.agdai | awk '{
   printf("%s>%s %s\n", $9, $6, $7)
 }')

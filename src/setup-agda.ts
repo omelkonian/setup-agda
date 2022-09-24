@@ -5,6 +5,7 @@ import spawnAsync from '@expo/spawn-async';
 import * as core from '@actions/core';
 import * as io from '@actions/io';
 import * as c from '@actions/cache';
+import * as glob from '@actions/glob';
 import deploy from '@jamesives/github-pages-deploy-action';
 import {action} from '@jamesives/github-pages-deploy-action/lib/constants';
 
@@ -178,10 +179,32 @@ import {getOpts, showLibs} from './opts';
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 
     // Add Github ribbons to all HTML files
-    if (opts.ribbon)
-      await sh(
-        `./scripts/addRibbonCSS.sh "${htmlDir}" "${opts.ribbonColor}" "${repo}" "${curBranch}" "${opts.ribbonMsg}"`
-      );
+    if (opts.ribbon) {
+      const globber = await glob.create(`${htmlDir}/*.html`);
+      for await (const f of globber.globGenerator()) {
+        const agdaFilename = f
+          .replace(`/${htmlDir}/`, '/')
+          .split('')
+          .map(ch => (ch == '.' ? '/' : ch))
+          .join('')
+          .replace('/html', '.agda');
+        let fileURL;
+        try {
+          fs.accessSync(agdaFilename);
+          fileURL = agdaFilename.replace(`${cur}/`, ''); // point to source file in repo
+        } catch {
+          fileURL = ''; // external dependency, point to repo's main page
+        }
+        const ribbonCss = `<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css'/>\
+<style>.github-fork-ribbon:before { background-color: ${opts.ribbonColor}; }</style>`;
+        const ribbon = `<a class='github-fork-ribbon'\
+href='https://github.com/${repo}/tree/${curBranch}/${fileURL}'\
+data-ribbon='${opts.ribbonMsg}' title='${opts.ribbonMsg}'>${opts.ribbonMsg}</a>`;
+        await sh(
+          `sed -i -e "s%</title>%</title>${ribbonCss}%g" -e "s%<body>%<body>${ribbon}%g" "${f}"`
+        );
+      }
+    }
 
     if (cacheHit != keys[0]) {
       core.info('Saving cache...');
