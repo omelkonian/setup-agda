@@ -19,7 +19,7 @@ import {getOpts, showLibs} from './opts';
     const curBranch =
       process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME;
     const opts = getOpts();
-    const {agda, stdlib, main, libraries, css, build} = opts;
+    const {agda, stdlib, main, libraries} = opts;
     core.info(`
     HOME: ${home}
     GITHUB_WORKSPACE: ${cur}
@@ -42,7 +42,6 @@ import {getOpts, showLibs} from './opts';
     core.addPath(cabalBin);
     const cabal = (opt: 0 | 1 | 2): string =>
       `cabal install --overwrite-policy=always --ghc-options='-O${opt} +RTS -M6G -RTS'`;
-    const agdaExe = join(cabalBin, 'agda');
 
     // Cache parameters
     const keys = ['GHC-v8.6.5', agdav, stdlibv, libsv];
@@ -108,22 +107,30 @@ import {getOpts, showLibs} from './opts';
     await curlUnzip(agdav, agdaURL, agdaDir);
 
     core.info(`Installing ${agdav}...`);
+    const agdaExe = join(cabalBin, 'agda');
+    const agdaReleaseExe = join(home, '.local/bin/', 'agda');
     try {
       fs.accessSync(agdaExe);
       core.info('...found in cache');
     } catch {
-      await sh(
-        `cabal update`,
-        `${cabal(2)} alex-3.2.5`,
-        `${cabal(2)} happy-1.19.12`
-      );
-      await sh(
-        `cd ${agdaDir}`,
-        `mkdir -p doc`,
-        `touch doc/user-manual.pdf`,
-        `${cabal(1)}`
-      );
-      core.info('... done');
+      try {
+        await sh(`sudo apt-get install agda-${agda}`);
+        fs.accessSync(agdaReleaseExe);
+        core.info('...found released binary');
+      } catch {
+        await sh(
+          `cabal update`,
+          `${cabal(2)} alex-3.2.5`,
+          `${cabal(2)} happy-1.19.12`
+        );
+        await sh(
+          `cd ${agdaDir}`,
+          `mkdir -p doc`,
+          `touch doc/user-manual.pdf`,
+          `${cabal(1)}`
+        );
+        core.info('...done');
+      }
     }
 
     await io.rmRF(libsPath); // reset library versions
@@ -144,66 +151,37 @@ import {getOpts, showLibs} from './opts';
       );
     }
 
-    if (!build) return;
+    if (!opts.build) return;
 
     core.info('Writing css files');
     const htmlDir = 'site';
     const cssDir = join(htmlDir, 'css');
     await io.mkdirP(cssDir);
-    const cssFile = css ? basename(css) : 'Agda.css';
+    const cssFile = opts.css ? basename(opts.css) : 'Agda.css';
 
-    if (css) {
-      await io.mv(join(cur, css), cssDir);
-    } else {
-      await io.mv(join(__dirname, 'css'), htmlDir);
-    }
+    if (opts.css) await io.mv(join(cur, opts.css), cssDir);
+    else await io.mv(join(__dirname, 'css'), htmlDir);
 
     core.info('Building Agda project and generating HTML');
     const mainHtml = main.split('/').join('.');
     const rtsOpts = opts.rts ? `+RTS ${opts.rts} -RTS` : '';
     const agdaCmd = `agda ${rtsOpts} --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`;
-    if (opts.measureTypechecking) {
-      await sh(`
-function displayTimeDiff { \
-  diff=$(($1 - $2)); \
-  echo "$(($diff / 60))m$(($diff % 60))s" \
-}; \
-out='${htmlDir}/typecheck.time'; \
-start=$(date +%s); \
-${agdaCmd}; \
-end=$(date +%s); \ 
-echo "TOTAL: $(displayTimeDiff $end $start)" > $out; \
-is=$(ls -hltr --full-time **/*.agdai | awk '{ \
-  printf("%s>%s %s\n", $9, $6, $7) \
-}'); \
-cur=$start; \
-while IFS= read -r i; do \
-  f=$(echo $i | cut -d'>' -f1 | cut -d'/' -f4- | cut -d'.' -f1); \
-  tv=$(echo $i | cut -d'>' -f2); \
-  t=$(date "+%s" -d "$tv"); \
-  echo "$f: $(displayTimeDiff $t $cur)" >> $out; \
-  cur=$t; \
-done <<< "$is"; \
-echo "Generated typechecking times in $out"`);
-    } else {
-      await sh(agdaCmd);
-    }
+    await io.mv(join(__dirname, 'scripts'), '.');
+
+    // Measure typechecking time (per module).
+    if (opts.measureTypechecking)
+      await sh(
+        `./scripts/measureTypechecking.sh "${agdaCmd}" "${htmlDir}/typecheck.time"`
+      );
+    else await sh(agdaCmd);
+
     await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 
     // Add Github ribbons to all HTML files
-    if (opts.ribbon) {
+    if (opts.ribbon)
       await sh(
-        `for f in ${htmlDir}/*.html; do \
-ribbonCss="\
- <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css'/>\
- <style>.github-fork-ribbon:before { background-color: ${opts.ribbonColor}; }</style>"; \
-ribbon="<a class='github-fork-ribbon'\
- href='https://github.com/${repo}/tree/${curBranch}/'\
- data-ribbon='${opts.ribbonMsg}' title='${opts.ribbonMsg}'>${opts.ribbonMsg}</a>"; \ 
-sed -i -e "s%</title>%</title>$ribbonCss%g" -e "s%<body>%<body>$ribbon%g" "$f"; \
-done`
+        `./scripts/addRibbonCSS.sh "${htmlDir}" "${opts.ribbonColor}" "${repo}" "${curBranch}" "${opts.ribbonMsg}"`
       );
-    }
 
     if (cacheHit != keys[0]) {
       core.info('Saving cache...');
