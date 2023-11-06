@@ -6,6 +6,7 @@ import * as core from '@actions/core';
 import * as io from '@actions/io';
 import * as c from '@actions/cache';
 import * as glob from '@actions/glob';
+import * as tc from '@actions/tool-cache';
 import deploy from '@jamesives/github-pages-deploy-action';
 import {action} from '@jamesives/github-pages-deploy-action/lib/constants';
 
@@ -103,36 +104,80 @@ import {getOpts, showLibs} from './opts';
     await io.mkdirP(downloads);
     await io.mkdirP(libsDir);
 
-    const agdaURL = `https://github.com/agda/agda/archive/v${agda}.zip`;
-    const agdaDir = join(downloads, `agda-${agda}`);
-    await curlUnzip(agdav, agdaURL, agdaDir);
-
     core.info(`Installing ${agdav}...`);
     const agdaExe = join(cabalBin, 'agda');
-    const agdaReleaseExe = join(home, '.local/bin/', 'agda');
+    const localDir = join(home, '.local/');
+    const localBin = join(localDir, 'bin/');
+    const agdaReleaseExe = join(localBin, 'agda');
+    const localData = join(localDir, 'data/');
     try {
-      fs.accessSync(agdaExe);
+      fs.accessSync(agdaReleaseExe);
       core.info('...found in cache');
     } catch {
       try {
-        await sh(`sudo apt-get install agda-${agda}`);
-        fs.accessSync(agdaReleaseExe);
-        core.info('...found released binary');
+        fs.accessSync(agdaExe);
+        core.info('...found in cabal cache');
       } catch {
-        await sh(
-          `cabal update`,
-          `${cabal(2)} alex-3.2.5`,
-          `${cabal(2)} happy-1.19.12`
+        const getGhcVersion = (v: string): string => {
+          switch (v) {
+            case '2.6.4':
+              return '9.6.3';
+            case '2.6.3':
+              return '9.4.4';
+            case '2.6.2.2':
+              return '9.2.4';
+            case '2.6.2.1':
+              return '9.0.2';
+            case '2.6.2':
+              return '9.0.2';
+            case '2.6.1.3':
+              return '8.10.7';
+            case '2.6.0.1':
+              return '8.6.5';
+            case '2.5.4.2':
+              return '8.4.4';
+            case '2.5.3':
+              return '8.2.2';
+            default:
+              return '';
+          }
+        };
+        const ghcVersion = getGhcVersion(agda);
+        const arc = await tc.downloadTool(
+          `https://github.com/wenkokke/setup-agda/releases/download/latest/agda-${agda}-x64-ubuntu-20.04-ghc${ghcVersion}-icu66.1.zip`
         );
-        await sh(
-          `cd ${agdaDir}`,
-          `mkdir -p doc`,
-          `touch doc/user-manual.pdf`,
-          `${cabal(1)}`
-        );
-        core.info('...done');
+        await tc.extractZip(arc, localDir);
+        await sh(`chmod +x ${agdaReleaseExe}`);
+        fs.accessSync(agdaReleaseExe);
+        core.exportVariable('Agda_datadir', localData);
+        core.info('...found released binary');
+        try {
+        } catch {
+          const agdaURL = `https://github.com/agda/agda/archive/v${agda}.zip`;
+          const agdaDir = join(downloads, `agda-${agda}`);
+          await curlUnzip(agdav, agdaURL, agdaDir);
+          try {
+            await sh(`sudo apt-get install agda-${agda}`);
+            fs.accessSync(agdaReleaseExe);
+            core.info('...found released Ubuntu package');
+          } catch {
+            await sh(
+              `cabal update`,
+              `${cabal(2)} alex-3.2.5`,
+              `${cabal(2)} happy-1.19.12`
+            );
+            await sh(
+              `cd ${agdaDir}`,
+              `mkdir -p doc`,
+              `touch doc/user-manual.pdf`,
+              `${cabal(1)}`
+            );
+            core.info('...done');
+          }
+        }
       }
     }
+    await sh(`agda --version`); // make sure we got the correct Agda version installed
 
     await io.rmRF(libsPath); // reset library versions
     // TODO: cleanup old library versions
