@@ -46,7 +46,7 @@ import {getOpts, showLibs} from './opts';
       `cabal install --overwrite-policy=always --ghc-options='-O${opt} +RTS -M6G -RTS'`;
 
     // Cache parameters
-    const keys = ['GHC-v8.6.5', agdav, stdlibv, libsv];
+    const keys = [agdav, stdlibv, libsv];
     const key = keys.join('-');
     const restoreKeys = [
       keys.slice(0, 4).join('-') + '-',

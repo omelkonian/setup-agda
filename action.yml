@@ -61,4 +61,4 @@ runs:
   using: 'node12'
   main: 'dist/index.js'
   pre: 'dist/setup-haskell/main/index.js'
-  pre-if: env.HASKELL == 0
+  pre-if: env.HASKELL == 1
