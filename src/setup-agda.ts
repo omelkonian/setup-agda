@@ -110,6 +110,7 @@ import {getOpts, showLibs} from './opts';
     const localBin = join(localDir, 'bin/');
     const agdaReleaseExe = join(localBin, 'agda');
     const localData = join(localDir, 'data/');
+
     try {
       fs.accessSync(agdaReleaseExe);
       core.info('...found in cache');
@@ -118,45 +119,45 @@ import {getOpts, showLibs} from './opts';
         fs.accessSync(agdaExe);
         core.info('...found in cabal cache');
       } catch {
-        const getGhcVersion = (v: string): string => {
-          switch (v) {
-            case '2.6.4':
-              return '9.6.3';
-            case '2.6.3':
-              return '9.4.4';
-            case '2.6.2.2':
-              return '9.2.4';
-            case '2.6.2.1':
-              return '9.0.2';
-            case '2.6.2':
-              return '9.0.2';
-            case '2.6.1.3':
-              return '8.10.7';
-            case '2.6.0.1':
-              return '8.6.5';
-            case '2.5.4.2':
-              return '8.4.4';
-            case '2.5.3':
-              return '8.2.2';
-            default:
-              return '';
-          }
-        };
-        const ghcVersion = getGhcVersion(agda);
-        const arc = await tc.downloadTool(
-          `https://github.com/wenkokke/setup-agda/releases/download/latest/agda-${agda}-x64-ubuntu-20.04-ghc${ghcVersion}-icu66.1.zip`
-        );
-        await tc.extractZip(arc, localDir);
-        await sh(`chmod +x ${agdaReleaseExe}`);
-        fs.accessSync(agdaReleaseExe);
-        core.exportVariable('Agda_datadir', localData);
-        core.info('...found released binary');
         try {
+          const getGhcVersion = (v: string): string => {
+            switch (v) {
+              case '2.6.4':
+                return '9.6.3';
+              case '2.6.3':
+                return '9.4.4';
+              case '2.6.2.2':
+                return '9.2.4';
+              case '2.6.2.1':
+                return '9.0.2';
+              case '2.6.2':
+                return '9.0.2';
+              case '2.6.1.3':
+                return '8.10.7';
+              case '2.6.0.1':
+                return '8.6.5';
+              case '2.5.4.2':
+                return '8.4.4';
+              case '2.5.3':
+                return '8.2.2';
+              default:
+                return '';
+            }
+          };
+          const ghcVersion = getGhcVersion(agda);
+          const arc = await tc.downloadTool(
+            `https://github.com/wenkokke/setup-agda/releases/download/latest/agda-${agda}-x64-ubuntu-20.04-ghc${ghcVersion}-icu66.1.zip`
+          );
+          await tc.extractZip(arc, localDir);
+          await sh(`chmod +x ${agdaReleaseExe}`);
+          fs.accessSync(agdaReleaseExe);
+          core.exportVariable('Agda_datadir', localData);
+          core.info('...found released binary');
         } catch {
           const agdaURL = `https://github.com/agda/agda/archive/v${agda}.zip`;
           const agdaDir = join(downloads, `agda-${agda}`);
-          await curlUnzip(agdav, agdaURL, agdaDir);
           try {
+            await curlUnzip(agdav, agdaURL, agdaDir);
             await sh(`sudo apt-get install agda-${agda}`);
             fs.accessSync(agdaReleaseExe);
             core.info('...found released Ubuntu package');
