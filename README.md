@@ -1,5 +1,5 @@
-# setup-agda
+# setup-agda: CI for Agda
 
-[![GitHub Actions status](https://github.com/omelkonian/setup-agda/workflows/CI/badge.svg)](https://github.com/actions/setup-agda)
+[![CI](https://github.com/omelkonian/setup-agda/actions/workflows/ci.yml/badge.svg)](https://github.com/omelkonian/setup-agda/actions/workflows/ci.yml)
 
-This action sets up an Agda environment for use in actions.
+This action sets up an Agda environment for use in other Github actions.
