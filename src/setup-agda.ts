@@ -203,8 +203,8 @@ import {getOpts, showLibs} from './opts';
     core.info('Writing css files');
     const htmlDir = 'site';
     const cssDir = join(htmlDir, 'css');
-    await io.mkdirP(cssDir);
     const cssFile = opts.css ? basename(opts.css) : 'Agda.css';
+    await io.mkdirP(cssDir);
 
     if (opts.css) await io.mv(join(cur, opts.css), cssDir);
     else await io.mv(join(__dirname, 'css'), htmlDir);
@@ -212,7 +212,10 @@ import {getOpts, showLibs} from './opts';
     core.info('Building Agda project and generating HTML');
     const mainHtml = main.split('/').join('.');
     const rtsOpts = opts.rts ? `+RTS ${opts.rts} -RTS` : '';
-    const agdaCmd = `agda ${rtsOpts} --html --html-dir=${htmlDir} --css=css/${cssFile} ${main}.agda`;
+    const htmlOpts = opts.deploy
+      ? `--html --html-dir=${htmlDir} --css=css/${cssFile}`
+      : '';
+    const agdaCmd = `agda ${rtsOpts} ${htmlOpts} ${main}.agda`;
     await io.mv(join(__dirname, 'scripts'), '.');
 
     // Measure typechecking time (per module).
@@ -222,33 +225,35 @@ import {getOpts, showLibs} from './opts';
       );
     else await sh(agdaCmd);
 
-    await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
+    if (opts.deploy) {
+      await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 
-    // Add Github ribbons to all HTML files
-    if (opts.ribbon) {
-      const globber = await glob.create(`${htmlDir}/*.html`);
-      for await (const f of globber.globGenerator()) {
-        const agdaFilename = f
-          .replace(`/${htmlDir}/`, '/')
-          .split('')
-          .map(ch => (ch == '.' ? '/' : ch))
-          .join('')
-          .replace('/html', '.agda');
-        let fileURL;
-        try {
-          fs.accessSync(agdaFilename);
-          fileURL = agdaFilename.replace(`${cur}/`, ''); // point to source file in repo
-        } catch {
-          fileURL = ''; // external dependency, point to repo's main page
-        }
-        const ribbonCss = `<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css'/>\
+      // Add Github ribbons to all HTML files
+      if (opts.ribbon && opts.deploy) {
+        const globber = await glob.create(`${htmlDir}/*.html`);
+        for await (const f of globber.globGenerator()) {
+          const agdaFilename = f
+            .replace(`/${htmlDir}/`, '/')
+            .split('')
+            .map(ch => (ch == '.' ? '/' : ch))
+            .join('')
+            .replace('/html', '.agda');
+          let fileURL;
+          try {
+            fs.accessSync(agdaFilename);
+            fileURL = agdaFilename.replace(`${cur}/`, ''); // point to source file in repo
+          } catch {
+            fileURL = ''; // external dependency, point to repo's main page
+          }
+          const ribbonCss = `<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css'/>\
 <style>.github-fork-ribbon:before { background-color: ${opts.ribbonColor}; }</style>`;
-        const ribbon = `<a class='github-fork-ribbon'\
+          const ribbon = `<a class='github-fork-ribbon'\
 href='https://github.com/${repo}/tree/${curBranch}/${fileURL}'\
 data-ribbon='${opts.ribbonMsg}' title='${opts.ribbonMsg}'>${opts.ribbonMsg}</a>`;
-        await sh(
-          `sed -i -e "s%</title>%</title>${ribbonCss}%g" -e "s%<body>%<body>${ribbon}%g" "${f}"`
-        );
+          await sh(
+            `sed -i -e "s%</title>%</title>${ribbonCss}%g" -e "s%<body>%<body>${ribbon}%g" "${f}"`
+          );
+        }
       }
     }
 
