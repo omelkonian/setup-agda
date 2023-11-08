@@ -209,7 +209,9 @@ import {getOpts, showLibs} from './opts';
     if (opts.css) await io.mv(join(cur, opts.css), cssDir);
     else await io.mv(join(__dirname, 'css'), htmlDir);
 
-    core.info('Building Agda project and generating HTML');
+    core.info(
+      `Building Agda project${opts.deploy ? ' and generating HTML' : ''}`
+    );
     const mainHtml = main.split('/').join('.');
     const rtsOpts = opts.rts ? `+RTS ${opts.rts} -RTS` : '';
     const htmlOpts = opts.deploy
