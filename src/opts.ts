@@ -35,8 +35,8 @@ export interface Options {
   // TODO: add {ghc: Version, cabal: Version}
 }
 
-function mkOpts(opts: Options): Options {
-  const {agda, stdlib, deploy, token} = opts;
+function resolveLatestVersions(opts: Options): Options {
+  const {agda, stdlib} = opts;
   return {
     ...opts,
     agda:
@@ -46,8 +46,7 @@ function mkOpts(opts: Options): Options {
     stdlib:
       stdlib == 'latest'
         ? supported_versions.stdlib[0]
-        : supported_versions.stdlib.find(v => v.startsWith(stdlib)) ?? stdlib,
-    deploy: token ? true : deploy
+        : supported_versions.stdlib.find(v => v.startsWith(stdlib)) ?? stdlib
   };
 }
 
@@ -55,7 +54,7 @@ export function getDefaults(): Options {
   const yml = load(
     readFileSync(join(__dirname, '..', 'action.yml'), 'utf8')
   ).inputs;
-  return mkOpts({
+  return resolveLatestVersions({
     agda: yml['agda-version'].default,
     stdlib: yml['stdlib-version'].default,
     libraries: parseLibs(yml['libraries'].default),
@@ -100,7 +99,12 @@ export function getOpts(): Options {
     libraries: parseLibs(get('libraries')) || def.libraries,
     build: parseBoolean(get('build')) || def.build,
     main: get('main') || def.main,
-    deploy: parseBoolean(get('deploy')) || def.deploy,
+    deploy:
+      get('deploy') !== 'true'
+        ? false
+        : get('token')
+        ? true
+        : parseBoolean(get('deploy')) || def.deploy,
     deployBranch: get('deploy-branch') || def.deployBranch,
     token: get('token'),
     css: get('css') || def.css,
@@ -111,7 +115,7 @@ export function getOpts(): Options {
     measureTypechecking:
       parseBoolean(get('measure-typechecking')) || def.measureTypechecking
   };
-  const opts = mkOpts(opts0);
+  const opts = resolveLatestVersions(opts0);
   core.debug(
     `Options are: ${JSON.stringify(opts0)} ~> ${JSON.stringify(opts)}`
   );

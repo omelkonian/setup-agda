@@ -2172,9 +2172,9 @@ const path_1 = __webpack_require__(622);
 const supported_versions = __importStar(__webpack_require__(447));
 const showLibs = (ls) => ls.map(l => `${l.user}/${l.repo}#${l.version}`).join('-');
 exports.showLibs = showLibs;
-function mkOpts(opts) {
+function resolveLatestVersions(opts) {
     var _a, _b;
-    const { agda, stdlib, deploy, token } = opts;
+    const { agda, stdlib } = opts;
     return {
         ...opts,
         agda: agda === 'latest'
@@ -2182,13 +2182,12 @@ function mkOpts(opts) {
             : (_a = supported_versions.agda.find(v => v.startsWith(agda))) !== null && _a !== void 0 ? _a : agda,
         stdlib: stdlib == 'latest'
             ? supported_versions.stdlib[0]
-            : (_b = supported_versions.stdlib.find(v => v.startsWith(stdlib))) !== null && _b !== void 0 ? _b : stdlib,
-        deploy: token ? true : deploy
+            : (_b = supported_versions.stdlib.find(v => v.startsWith(stdlib))) !== null && _b !== void 0 ? _b : stdlib
     };
 }
 function getDefaults() {
     const yml = (0, js_yaml_1.load)((0, fs_1.readFileSync)((0, path_1.join)(__dirname, '..', 'action.yml'), 'utf8')).inputs;
-    return mkOpts({
+    return resolveLatestVersions({
         agda: yml['agda-version'].default,
         stdlib: yml['stdlib-version'].default,
         libraries: parseLibs(yml['libraries'].default),
@@ -2231,7 +2230,11 @@ function getOpts() {
         libraries: parseLibs(get('libraries')) || def.libraries,
         build: parseBoolean(get('build')) || def.build,
         main: get('main') || def.main,
-        deploy: parseBoolean(get('deploy')) || def.deploy,
+        deploy: get('deploy') !== 'true'
+            ? false
+            : get('token')
+                ? true
+                : parseBoolean(get('deploy')) || def.deploy,
         deployBranch: get('deploy-branch') || def.deployBranch,
         token: get('token'),
         css: get('css') || def.css,
@@ -2241,7 +2244,7 @@ function getOpts() {
         ribbonColor: get('ribbon-color') || def.ribbonColor,
         measureTypechecking: parseBoolean(get('measure-typechecking')) || def.measureTypechecking
     };
-    const opts = mkOpts(opts0);
+    const opts = resolveLatestVersions(opts0);
     core.debug(`Options are: ${JSON.stringify(opts0)} ~> ${JSON.stringify(opts)}`);
     // Check that options are consistent
     if (opts.deploy && !opts.token)
