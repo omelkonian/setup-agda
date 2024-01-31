@@ -99,12 +99,7 @@ export function getOpts(): Options {
     libraries: parseLibs(get('libraries')) || def.libraries,
     build: parseBoolean(get('build')) || def.build,
     main: get('main') || def.main,
-    deploy:
-      get('deploy') !== 'true'
-        ? false
-        : get('token')
-        ? true
-        : parseBoolean(get('deploy')) || def.deploy,
+    deploy: parseBoolean(get('deploy')) || get('token') ? true : def.deploy,
     deployBranch: get('deploy-branch') || def.deployBranch,
     token: get('token'),
     css: get('css') || def.css,

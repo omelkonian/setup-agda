@@ -35,14 +35,12 @@ describe('actions/setup-agda', () => {
 
   it('[meta] Setup Env works', () => {
     setupEnv({input: 'value'});
-    const i = getInput('input');
-    expect(i).toEqual('value');
+    expect(getInput('input')).toEqual('value');
   });
 
   it('getOpts grabs defaults correctly from environment', () => {
     setupEnv({});
-    const options = getOpts();
-    forAll(t => expect(options[t]).toBe(def[t]));
+    forAll(t => expect(getOpts()[t]).toBe(def[t]));
   });
 
   it('Versions resolve correctly', () => {
@@ -51,8 +49,7 @@ describe('actions/setup-agda', () => {
       'agda-version': '2.6',
       'stdlib-version': '1'
     });
-    const options = getOpts();
-    forAll(t => expect(options[t]).toBe(v[t]));
+    forAll(t => expect(getOpts()[t]).toBe(v[t]));
   });
 
   it('"latest" Versions resolve correctly', () => {
@@ -60,21 +57,18 @@ describe('actions/setup-agda', () => {
       'agda-version': 'latest',
       'stdlib-version': 'latest'
     });
-    const options = getOpts();
-    forAll(t => expect(options[t]).toBe(latestVersions[t]));
+    forAll(t => expect(getOpts()[t]).toBe(latestVersions[t]));
   });
 
   it('"token" automatically triggers "deploy"', () => {
-    const v = {...latestVersions, deploy: 'true', deployToken: 'CHANGE_ME'};
-    setupEnv({'deploy-token': 'CHANGE_ME'});
-    const options = getOpts();
-    forAll(t => expect(options[t]).toBe(v[t]));
+    const v = {...latestVersions, deploy: true, token: 'CHANGE_ME'};
+    setupEnv({token: 'CHANGE_ME'});
+    forAll(t => expect(getOpts()[t]).toBe(v[t]));
   });
 
   it('"deploy" resolves correctly w.r.t. token', () => {
-    const v = {...latestVersions, deploy: 'false'};
-    setupEnv({'deploy-token': 'CHANGE_ME'});
-    const options = getOpts();
-    forAll(t => expect(options[t]).toBe(v[t]));
+    const v = {...latestVersions, token: 'CHANGE_ME', deploy: false};
+    setupEnv({deploy: false, token: 'CHANGE_ME'});
+    forAll(t => expect(getOpts()[t]).toBe(v[t]));
   });
 });
