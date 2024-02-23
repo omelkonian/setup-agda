@@ -122,6 +122,8 @@ import {getOpts, showLibs} from './opts';
         try {
           const getGhcVersion = (v: string): string => {
             switch (v) {
+              case '2.6.4.1':
+                return '9.4.7';
               case '2.6.4':
                 return '9.6.3';
               case '2.6.3':
