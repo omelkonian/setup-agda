@@ -22,6 +22,7 @@ export interface Options {
   stdlib: Version;
   libraries: Library[];
   build: boolean;
+  dir: string;
   main: string;
   deploy: boolean;
   deployBranch: string;
@@ -59,6 +60,7 @@ export function getDefaults(): Options {
     stdlib: yml['stdlib-version'].default,
     libraries: parseLibs(yml['libraries'].default),
     build: yml['build'].default,
+    dir: yml['dir'].default,
     main: yml['main'].default,
     deploy: yml['deploy'].default,
     deployBranch: yml['deploy-branch'].default,
@@ -98,6 +100,7 @@ export function getOpts(): Options {
     stdlib: get('stdlib-version') || def.stdlib,
     libraries: parseLibs(get('libraries')) || def.libraries,
     build: parseBoolean(get('build')) || def.build,
+    dir: get('dir') || def.dir,
     main: get('main') || def.main,
     deploy: parseBoolean(get('deploy')) || get('token') ? true : def.deploy,
     deployBranch: get('deploy-branch') || def.deployBranch,

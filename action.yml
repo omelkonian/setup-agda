@@ -18,9 +18,13 @@ inputs:
     required: false
     description: 'Whether to build the Agda project.'
     default: true
+  dir:
+    required: false
+    description: 'Main folder of your Agda source (the `include` field of the .agda-lib file)'
+    default: '.'
   main:
     required: false
-    description: "Entry point for your Agda project without the '.agda' extention, e.g. 'Example/Main'"
+    description: "Entry point for your Agda project without the '.agda' extension or root folder, e.g. 'Data.Nat'"
     default: 'Main'
   deploy:
     required: false

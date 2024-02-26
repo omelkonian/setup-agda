@@ -21,7 +21,7 @@ import {getOpts, showLibs} from './opts';
     const curBranch =
       process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME;
     const opts = getOpts();
-    const {agda, stdlib, main, libraries} = opts;
+    const {agda, stdlib, dir, main, libraries} = opts;
     core.info(`
     HOME: ${home}
     GITHUB_WORKSPACE: ${cur}
@@ -219,7 +219,7 @@ import {getOpts, showLibs} from './opts';
     const htmlOpts = opts.deploy
       ? `--html --html-dir=${htmlDir} --css=css/${cssFile}`
       : '';
-    const agdaCmd = `agda ${rtsOpts} ${htmlOpts} ${main}.agda`;
+    const agdaCmd = `agda ${rtsOpts} ${htmlOpts} ${dir}/${main}.agda`;
     await io.mv(join(__dirname, 'scripts'), '.');
 
     // Measure typechecking time (per module).
@@ -236,12 +236,14 @@ import {getOpts, showLibs} from './opts';
       if (opts.ribbon && opts.deploy) {
         const globber = await glob.create(`${htmlDir}/*.html`);
         for await (const f of globber.globGenerator()) {
+          core.debug(`Generating ribbon for file: ${f}...`);
           const agdaFilename = f
-            .replace(`/${htmlDir}/`, '/')
+            .replace(`/${htmlDir}/`, `/${dir}/`)
             .split('')
             .map(ch => (ch == '.' ? '/' : ch))
             .join('')
             .replace('/html', '.agda');
+          core.debug(`- corresponding Agda file: ${agdaFilename}`);
           let fileURL;
           try {
             fs.accessSync(agdaFilename);
@@ -249,6 +251,7 @@ import {getOpts, showLibs} from './opts';
           } catch {
             fileURL = ''; // external dependency, point to repo's main page
           }
+          core.debug(`- ribbon URL: ${fileURL}`);
           const ribbonCss = `<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.2.3/gh-fork-ribbon.min.css'/>\
 <style>.github-fork-ribbon:before { background-color: ${opts.ribbonColor}; }</style>`;
           const ribbon = `<a class='github-fork-ribbon'\
