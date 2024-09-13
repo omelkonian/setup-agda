@@ -104,7 +104,7 @@ import {getOpts, showLibs} from './opts';
     await io.mkdirP(downloads);
     await io.mkdirP(libsDir);
 
-    core.info(`Installingg ${agdav}...`);
+    core.info(`Installing ${agdav}...`);
     const agdaExe = join(cabalBin, 'agda');
     const localDir = join(home, '.local/');
     const localBin = join(localDir, 'bin/');
@@ -151,9 +151,7 @@ import {getOpts, showLibs} from './opts';
                 return '';
             }
           };
-          core.info(`AGDA: ${agda}`);
           const ghc = getGhcVersion(agda);
-          core.info(`GHC: ${ghc}`);
           const arc = await tc.downloadTool(
             `https://github.com/wenkokke/setup-agda/releases/download/v2.4.0/agda-${agda}-x64-ubuntu-22.04-ghc${ghc}-icu70.1.zip`
           );
