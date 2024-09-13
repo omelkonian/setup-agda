@@ -104,7 +104,7 @@ import {getOpts, showLibs} from './opts';
     await io.mkdirP(downloads);
     await io.mkdirP(libsDir);
 
-    core.info(`Installing ${agdav}...`);
+    core.info(`Installingg ${agdav}...`);
     const agdaExe = join(cabalBin, 'agda');
     const localDir = join(home, '.local/');
     const localBin = join(localDir, 'bin/');
@@ -120,8 +120,13 @@ import {getOpts, showLibs} from './opts';
         core.info('...found in cabal cache');
       } catch {
         try {
+          // For Ubuntu 20.04
           const getGhcVersion = (v: string): string => {
             switch (v) {
+              case '2.7.0':
+                return '9.10.1';
+              case '2.6.4.3':
+                return '9.8.1';
               case '2.6.4.1':
                 return '9.4.7';
               case '2.6.4':
@@ -146,9 +151,11 @@ import {getOpts, showLibs} from './opts';
                 return '';
             }
           };
-          const ghcVersion = getGhcVersion(agda);
+          core.info(`AGDA: ${agda}`);
+          const ghc = getGhcVersion(agda);
+          core.info(`GHC: ${ghc}`);
           const arc = await tc.downloadTool(
-            `https://github.com/wenkokke/setup-agda/releases/download/latest/agda-${agda}-x64-ubuntu-20.04-ghc${ghcVersion}-icu66.1.zip`
+            `https://github.com/wenkokke/setup-agda/releases/download/v2.4.0/agda-${agda}-x64-ubuntu-22.04-ghc${ghc}-icu70.1.zip`
           );
           await tc.extractZip(arc, localDir);
           await sh(`chmod +x ${agdaReleaseExe}`);

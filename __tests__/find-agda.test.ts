@@ -44,7 +44,7 @@ describe('actions/setup-agda', () => {
   });
 
   it('Versions resolve correctly', () => {
-    const v = {agda: '2.6.4.1', stdlib: '1.7.3'};
+    const v = {agda: '2.6.4.3', stdlib: '1.7.3'};
     setupEnv({
       'agda-version': '2.6',
       'stdlib-version': '1'

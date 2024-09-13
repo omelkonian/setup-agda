@@ -13,10 +13,10 @@ jobs:
         os: [ubuntu-latest] #, macOS-latest, windows-latest]
     steps:
       - uses: actions/checkout@v3
-      - name: Set Node.js 12
+      - name: Set Node.js 22
         uses: actions/setup-node@v1
         with:
-          node-version: 12
+          node-version: 22
       - run: npm ci --prefer-offline --no-audit --progress=false
       - run: npm test
 
@@ -37,6 +37,6 @@ jobs:
         with:
           agda-version: ${{ matrix.agda }}
           stdlib-version: ${{ matrix.stdlib }}
-          libraries: 'omelkonian/formal-prelude#master'
+          libraries: 'omelkonian/formal-prelude#c10fe94'
           main: Example/Test
           token: ${{ secrets.GITHUB_TOKEN }}
