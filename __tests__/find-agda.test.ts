@@ -14,10 +14,6 @@ const mkName = (s: string): string =>
 const setupEnv = (o: Record<string, unknown>): void =>
   Object.entries(o).forEach(([k, v]) => v && (process.env[mkName(k)] = `${v}`));
 
-type Tool = 'agda' | 'stdlib';
-const forAll = (fn: (t: Tool) => any) =>
-  (['agda', 'stdlib'] as const).forEach(fn);
-
 describe('actions/setup-agda', () => {
   const OLD_ENV = process.env;
 
@@ -28,6 +24,10 @@ describe('actions/setup-agda', () => {
   });
 
   afterEach(() => (process.env = OLD_ENV));
+
+  type Tool = 'agda' | 'stdlib';
+  const forAll = (fn: (t: Tool) => any) =>
+    (['agda', 'stdlib'] as const).forEach(fn);
 
   it('Parses action.yml to get correct default versions', () => {
     forAll(t => expect(def[t]).toBe(latestVersions[t]));
@@ -60,15 +60,25 @@ describe('actions/setup-agda', () => {
     forAll(t => expect(getOpts()[t]).toBe(latestVersions[t]));
   });
 
+  type Flag = 'deploy' | 'token';
+  const forAllF = (fn: (t: Flag) => any) =>
+    (['deploy', 'token'] as const).forEach(fn);
+
   it('"token" automatically triggers "deploy"', () => {
-    const v = {...latestVersions, deploy: true, token: 'CHANGE_ME'};
+    const v = {...latestVersions, token: 'CHANGE_ME', deploy: true};
     setupEnv({token: 'CHANGE_ME'});
-    forAll(t => expect(getOpts()[t]).toBe(v[t]));
+    forAllF(t => expect(getOpts()[t]).toBe(v[t]));
   });
 
-  it('"deploy" resolves correctly w.r.t. token', () => {
+  it('"token" does not automatically trigger "deploy" when deploy is true', () => {
+    const v = {...latestVersions, token: 'CHANGE_ME', deploy: true};
+    setupEnv({token: 'CHANGE_ME', deploy: 'true'});
+    forAllF(t => expect(getOpts()[t]).toBe(v[t]));
+  });
+
+  it('"token" does not automatically trigger "deploy" when deploy is false', () => {
     const v = {...latestVersions, token: 'CHANGE_ME', deploy: false};
-    setupEnv({deploy: false, token: 'CHANGE_ME'});
-    forAll(t => expect(getOpts()[t]).toBe(v[t]));
+    setupEnv({token: 'CHANGE_ME', deploy: 'false'});
+    forAllF(t => expect(getOpts()[t]).toBe(v[t]));
   });
 });
