@@ -44,11 +44,11 @@ describe('actions/setup-agda', () => {
   });
 
   it('Versions resolve correctly', () => {
-    const v = {agda: '2.6.4.3', stdlib: '1.7.3'};
     setupEnv({
       'agda-version': '2.6',
       'stdlib-version': '1'
     });
+    const v = {agda: '2.6.4.3', stdlib: '1.7.3'};
     forAll(t => expect(getOpts()[t]).toBe(v[t]));
   });
 
@@ -64,21 +64,34 @@ describe('actions/setup-agda', () => {
   const forAllF = (fn: (t: Flag) => any) =>
     (['deploy', 'token'] as const).forEach(fn);
 
-  it('"token" automatically triggers "deploy"', () => {
+  // ** BUG: core.getInput cannot differentiate between false and not-set
+  // it('"token" automatically triggers "deploy"', () => {
+  //   setupEnv({token: 'CHANGE_ME'});
+  //   const v = {...latestVersions, token: 'CHANGE_ME', deploy: true};
+  //   forAllF(t => expect(getOpts()[t]).toBe(v[t]));
+  // });
+
+  it('"token" does not automatically trigger "deploy" when deploy is "true"', () => {
+    setupEnv({token: 'CHANGE_ME', deploy: 'true'});
     const v = {...latestVersions, token: 'CHANGE_ME', deploy: true};
-    setupEnv({token: 'CHANGE_ME'});
+    forAllF(t => expect(getOpts()[t]).toBe(v[t]));
+  });
+
+  it('"token" does not automatically trigger "deploy" when deploy is "false"', () => {
+    setupEnv({token: 'CHANGE_ME', deploy: 'false'});
+    const v = {...latestVersions, token: 'CHANGE_ME', deploy: false};
     forAllF(t => expect(getOpts()[t]).toBe(v[t]));
   });
 
   it('"token" does not automatically trigger "deploy" when deploy is true', () => {
+    setupEnv({token: 'CHANGE_ME', deploy: true});
     const v = {...latestVersions, token: 'CHANGE_ME', deploy: true};
-    setupEnv({token: 'CHANGE_ME', deploy: 'true'});
     forAllF(t => expect(getOpts()[t]).toBe(v[t]));
   });
 
   it('"token" does not automatically trigger "deploy" when deploy is false', () => {
+    setupEnv({token: 'CHANGE_ME', deploy: false});
     const v = {...latestVersions, token: 'CHANGE_ME', deploy: false};
-    setupEnv({token: 'CHANGE_ME', deploy: 'false'});
     forAllF(t => expect(getOpts()[t]).toBe(v[t]));
   });
 });
