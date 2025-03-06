@@ -73159,7 +73159,7 @@ function getOpts() {
         build: parseBoolean(get('build')) || def.build,
         dir: get('dir') || def.dir,
         main: get('main') || def.main,
-        deploy: parseBoolean(get('deploy')) || get('token') ? true : def.deploy,
+        deploy: parseBoolean(get('deploy')) || def.deploy,
         deployBranch: get('deploy-branch') || def.deployBranch,
         token: get('token'),
         css: get('css') || def.css,
@@ -73294,7 +73294,7 @@ const opts_1 = __nccwpck_require__(8131);
         core.info(`...${cacheHit ? 'done' : 'not found'}`);
         await io.mkdirP(downloads);
         await io.mkdirP(libsDir);
-        core.info(`Installingg ${agdav}...`);
+        core.info(`Installing ${agdav}...`);
         const agdaExe = (0, path_1.join)(cabalBin, 'agda');
         const localDir = (0, path_1.join)(home, '.local/');
         const localBin = (0, path_1.join)(localDir, 'bin/');
@@ -73314,6 +73314,8 @@ const opts_1 = __nccwpck_require__(8131);
                     // For Ubuntu 20.04
                     const getGhcVersion = (v) => {
                         switch (v) {
+                            case '2.7.0.1':
+                                return '9.10.1';
                             case '2.7.0':
                                 return '9.10.1';
                             case '2.6.4.3':
@@ -73342,10 +73344,8 @@ const opts_1 = __nccwpck_require__(8131);
                                 return '';
                         }
                     };
-                    core.info(`AGDA: ${agda}`);
                     const ghc = getGhcVersion(agda);
-                    core.info(`GHC: ${ghc}`);
-                    const arc = await tc.downloadTool(`https://github.com/wenkokke/setup-agda/releases/download/v2.4.0/agda-${agda}-x64-ubuntu-22.04-ghc${ghc}-icu70.1.zip`);
+                    const arc = await tc.downloadTool(`https://github.com/wenkokke/setup-agda/releases/download/latest/agda-${agda}-x64-ubuntu-22.04-ghc${ghc}-icu70.1.zip`);
                     await tc.extractZip(arc, localDir);
                     await sh(`chmod +x ${agdaReleaseExe}`);
                     fs.accessSync(agdaReleaseExe);
@@ -84396,7 +84396,7 @@ module.exports = parseParams
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse('{"agda":["2.7.0","2.6.4.3","2.6.4.1","2.6.4","2.6.3","2.6.2.2","2.6.2.1","2.6.2","2.6.1.3","2.6.0.1","2.5.4.2","2.5.3"],"stdlib":["2.1.1","2.1","2.0","1.7.3","1.7.2","1.7","1.6","1.5","1.4","1.3","1.2","1.1","1.0","1.0.1","0.17","0.16","0.15"]}');
+module.exports = JSON.parse('{"agda":["2.7.0.1","2.7.0","2.6.4.3","2.6.4.1","2.6.4","2.6.3","2.6.2.2","2.6.2.1","2.6.2","2.6.1.3","2.6.0.1","2.5.4.2","2.5.3"],"stdlib":["2.2","2.1.1","2.1","2.0","1.7.3","1.7.2","1.7","1.6","1.5","1.4","1.3","1.2","1.1","1.0","1.0.1","0.17","0.16","0.15"]}');
 
 /***/ })
 

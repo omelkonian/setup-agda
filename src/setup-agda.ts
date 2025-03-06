@@ -123,6 +123,8 @@ import {getOpts, showLibs} from './opts';
           // For Ubuntu 20.04
           const getGhcVersion = (v: string): string => {
             switch (v) {
+              case '2.7.0.1':
+                return '9.10.1';
               case '2.7.0':
                 return '9.10.1';
               case '2.6.4.3':
@@ -153,7 +155,7 @@ import {getOpts, showLibs} from './opts';
           };
           const ghc = getGhcVersion(agda);
           const arc = await tc.downloadTool(
-            `https://github.com/wenkokke/setup-agda/releases/download/v2.4.0/agda-${agda}-x64-ubuntu-22.04-ghc${ghc}-icu70.1.zip`
+            `https://github.com/wenkokke/setup-agda/releases/download/latest/agda-${agda}-x64-ubuntu-22.04-ghc${ghc}-icu70.1.zip`
           );
           await tc.extractZip(arc, localDir);
           await sh(`chmod +x ${agdaReleaseExe}`);
