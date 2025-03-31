@@ -73405,7 +73405,8 @@ const opts_1 = __nccwpck_require__(8131);
         else
             await sh(agdaCmd);
         if (opts.deploy) {
-            await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
+            if (mainHtml != 'index')
+                await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
             // Add Github ribbons to all HTML files
             if (opts.ribbon && opts.deploy) {
                 const globber = await glob.create(`${htmlDir}/*.html`);

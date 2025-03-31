@@ -237,7 +237,8 @@ import {getOpts, showLibs} from './opts';
     else await sh(agdaCmd);
 
     if (opts.deploy) {
-      await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
+      if (mainHtml != 'index')
+        await io.cp(`${htmlDir}/${mainHtml}.html`, `${htmlDir}/index.html`);
 
       // Add Github ribbons to all HTML files
       if (opts.ribbon && opts.deploy) {
