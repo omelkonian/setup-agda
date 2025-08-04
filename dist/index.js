@@ -73248,7 +73248,6 @@ const opts_1 = __nccwpck_require__(8131);
         const libsPath = (0, path_1.join)(libsDir, 'libraries');
         const cabalBin = (0, path_1.join)(home, '.cabal/bin');
         core.addPath(cabalBin);
-        const cabal = (opt) => `cabal install --overwrite-policy=always --ghc-options='-O${opt} +RTS -M6G -RTS'`;
         // Cache parameters
         const keys = [agdav, stdlibv, libsv];
         const key = keys.join('-');
@@ -73314,6 +73313,8 @@ const opts_1 = __nccwpck_require__(8131);
                     // For Ubuntu 20.04
                     const getGhcVersion = (v) => {
                         switch (v) {
+                            case '2.8.0':
+                                return '9.12.2';
                             case '2.7.0.1':
                                 return '9.10.1';
                             case '2.7.0':
@@ -73362,8 +73363,7 @@ const opts_1 = __nccwpck_require__(8131);
                         core.info('...found released Ubuntu package');
                     }
                     catch {
-                        await sh(`cabal update`, `${cabal(2)} alex-3.2.5`, `${cabal(2)} happy-1.19.12`);
-                        await sh(`cd ${agdaDir}`, `mkdir -p doc`, `touch doc/user-manual.pdf`, `${cabal(1)}`);
+                        await sh(`cd ${agdaDir}`, 'cabal update', 'cabal install');
                         core.info('...done');
                     }
                 }
@@ -84397,7 +84397,7 @@ module.exports = parseParams
 /***/ ((module) => {
 
 "use strict";
-module.exports = JSON.parse('{"agda":["2.7.0.1","2.7.0","2.6.4.3","2.6.4.1","2.6.4","2.6.3","2.6.2.2","2.6.2.1","2.6.2","2.6.1.3","2.6.0.1","2.5.4.2","2.5.3"],"stdlib":["2.2","2.1.1","2.1","2.0","1.7.3","1.7.2","1.7","1.6","1.5","1.4","1.3","1.2","1.1","1.0","1.0.1","0.17","0.16","0.15"]}');
+module.exports = JSON.parse('{"agda":["2.8.0","2.7.0.1","2.7.0","2.6.4.3","2.6.4.1","2.6.4","2.6.3","2.6.2.2","2.6.2.1","2.6.2","2.6.1.3","2.6.0.1","2.5.4.2","2.5.3"],"stdlib":["2.3","2.2","2.1.1","2.1","2.0","1.7.3","1.7.2","1.7","1.6","1.5","1.4","1.3","1.2","1.1","1.0","1.0.1","0.17","0.16","0.15"]}');
 
 /***/ })
 

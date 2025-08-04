@@ -42,8 +42,6 @@ import {getOpts, showLibs} from './opts';
 
     const cabalBin = join(home, '.cabal/bin');
     core.addPath(cabalBin);
-    const cabal = (opt: 0 | 1 | 2): string =>
-      `cabal install --overwrite-policy=always --ghc-options='-O${opt} +RTS -M6G -RTS'`;
 
     // Cache parameters
     const keys = [agdav, stdlibv, libsv];
@@ -123,6 +121,8 @@ import {getOpts, showLibs} from './opts';
           // For Ubuntu 20.04
           const getGhcVersion = (v: string): string => {
             switch (v) {
+              case '2.8.0':
+                return '9.12.2';
               case '2.7.0.1':
                 return '9.10.1';
               case '2.7.0':
@@ -171,17 +171,7 @@ import {getOpts, showLibs} from './opts';
             fs.accessSync(agdaReleaseExe);
             core.info('...found released Ubuntu package');
           } catch {
-            await sh(
-              `cabal update`,
-              `${cabal(2)} alex-3.2.5`,
-              `${cabal(2)} happy-1.19.12`
-            );
-            await sh(
-              `cd ${agdaDir}`,
-              `mkdir -p doc`,
-              `touch doc/user-manual.pdf`,
-              `${cabal(1)}`
-            );
+            await sh(`cd ${agdaDir}`, 'cabal update', 'cabal install');
             core.info('...done');
           }
         }
