@@ -1,5 +1,6 @@
 #!/bin/bash
 shopt -s globstar
+set -eu
 agdaCmd=$1 && shift
 out=$1 && shift
 
