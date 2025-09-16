@@ -73091,7 +73091,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.showLibs = void 0;
-exports.getDefaults = getDefaults;
 exports.getOpts = getOpts;
 const core = __importStar(__nccwpck_require__(2186));
 const fs_1 = __nccwpck_require__(7147);
@@ -73107,31 +73106,16 @@ function resolveLatestVersions(opts) {
         ...opts,
         agda: agda === 'latest'
             ? supported_versions.agda[0]
-            : (_a = supported_versions.agda.find(v => v.startsWith(agda))) !== null && _a !== void 0 ? _a : agda,
+            : ((_a = supported_versions.agda.find(v => v.startsWith(agda))) !== null && _a !== void 0 ? _a : agda),
         stdlib: stdlib == 'latest'
             ? supported_versions.stdlib[0]
-            : (_b = supported_versions.stdlib.find(v => v.startsWith(stdlib))) !== null && _b !== void 0 ? _b : stdlib
+            : ((_b = supported_versions.stdlib.find(v => v.startsWith(stdlib))) !== null && _b !== void 0 ? _b : stdlib)
     };
 }
-function getDefaults() {
+function get(opt) {
     const yml = (0, js_yaml_1.load)((0, fs_1.readFileSync)((0, path_1.join)(__dirname, '..', 'action.yml'), 'utf8')).inputs;
-    return resolveLatestVersions({
-        agda: yml['agda-version'].default,
-        stdlib: yml['stdlib-version'].default,
-        libraries: parseLibs(yml['libraries'].default),
-        build: yml['build'].default,
-        dir: yml['dir'].default,
-        main: yml['main'].default,
-        deploy: yml['deploy'].default,
-        deployBranch: yml['deploy-branch'].default,
-        token: yml['token'].default,
-        css: yml['css'].default,
-        rts: yml['rts'].default,
-        ribbon: yml['ribbon'].default,
-        ribbonMsg: yml['ribbon-msg'].default,
-        ribbonColor: yml['ribbon-color'].default,
-        measureTypechecking: yml['measure-typechecking'].default
-    });
+    const o = core.getInput(opt, { required: yml[opt].required });
+    return !o ? yml[opt].default : o;
 }
 function parseLibs(libs) {
     const parseRepo = (l) => {
@@ -73146,28 +73130,25 @@ function parseLibs(libs) {
     const ls = libs.split('\n');
     return ls[0] ? ls.map(parseRepo) : [];
 }
-const parseBoolean = (s) => s == 'true';
 function getOpts() {
     // Parse options
-    const def = getDefaults();
-    core.debug(`Default options are: ${JSON.stringify(def)}`);
-    const get = core.getInput;
+    const parseBoolean = (s) => s == 'true';
     const opts0 = {
-        agda: get('agda-version') || def.agda,
-        stdlib: get('stdlib-version') || def.stdlib,
-        libraries: parseLibs(get('libraries')) || def.libraries,
-        build: parseBoolean(get('build')) || def.build,
-        dir: get('dir') || def.dir,
-        main: get('main') || def.main,
-        deploy: parseBoolean(get('deploy')) || def.deploy,
-        deployBranch: get('deploy-branch') || def.deployBranch,
+        agda: get('agda-version'),
+        stdlib: get('stdlib-version'),
+        libraries: parseLibs(get('libraries')),
+        build: parseBoolean(get('build')),
+        dir: get('dir'),
+        main: get('main'),
+        deploy: parseBoolean(get('deploy')),
+        deployBranch: get('deploy-branch'),
         token: get('token'),
-        css: get('css') || def.css,
-        rts: get('rts') || def.rts,
-        ribbon: parseBoolean(get('ribbon')) || def.ribbon,
-        ribbonMsg: get('ribbon-msg') || def.ribbonMsg,
-        ribbonColor: get('ribbon-color') || def.ribbonColor,
-        measureTypechecking: parseBoolean(get('measure-typechecking')) || def.measureTypechecking
+        css: get('css'),
+        rts: get('rts'),
+        ribbon: parseBoolean(get('ribbon')),
+        ribbonMsg: get('ribbon-msg'),
+        ribbonColor: get('ribbon-color'),
+        measureTypechecking: parseBoolean(get('measure-typechecking'))
     };
     const opts = resolveLatestVersions(opts0);
     core.debug(`Options are: ${JSON.stringify(opts0)} ~> ${JSON.stringify(opts)}`);

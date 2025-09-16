@@ -43,35 +43,20 @@ function resolveLatestVersions(opts: Options): Options {
     agda:
       agda === 'latest'
         ? supported_versions.agda[0]
-        : supported_versions.agda.find(v => v.startsWith(agda)) ?? agda,
+        : (supported_versions.agda.find(v => v.startsWith(agda)) ?? agda),
     stdlib:
       stdlib == 'latest'
         ? supported_versions.stdlib[0]
-        : supported_versions.stdlib.find(v => v.startsWith(stdlib)) ?? stdlib
+        : (supported_versions.stdlib.find(v => v.startsWith(stdlib)) ?? stdlib)
   };
 }
 
-export function getDefaults(): Options {
+function get(opt: string): string {
   const yml = load(
     readFileSync(join(__dirname, '..', 'action.yml'), 'utf8')
   ).inputs;
-  return resolveLatestVersions({
-    agda: yml['agda-version'].default,
-    stdlib: yml['stdlib-version'].default,
-    libraries: parseLibs(yml['libraries'].default),
-    build: yml['build'].default,
-    dir: yml['dir'].default,
-    main: yml['main'].default,
-    deploy: yml['deploy'].default,
-    deployBranch: yml['deploy-branch'].default,
-    token: yml['token'].default,
-    css: yml['css'].default,
-    rts: yml['rts'].default,
-    ribbon: yml['ribbon'].default,
-    ribbonMsg: yml['ribbon-msg'].default,
-    ribbonColor: yml['ribbon-color'].default,
-    measureTypechecking: yml['measure-typechecking'].default
-  });
+  const o = core.getInput(opt, {required: yml[opt].required});
+  return !o ? yml[opt].default : o;
 }
 
 function parseLibs(libs: string): Library[] {
@@ -88,30 +73,25 @@ function parseLibs(libs: string): Library[] {
   return ls[0] ? ls.map(parseRepo) : [];
 }
 
-const parseBoolean = (s: string): boolean => s == 'true';
-
 export function getOpts(): Options {
   // Parse options
-  const def: Options = getDefaults();
-  core.debug(`Default options are: ${JSON.stringify(def)}`);
-  const get = core.getInput;
+  const parseBoolean = (s: string): boolean => s == 'true';
   const opts0: Options = {
-    agda: get('agda-version') || def.agda,
-    stdlib: get('stdlib-version') || def.stdlib,
-    libraries: parseLibs(get('libraries')) || def.libraries,
-    build: parseBoolean(get('build')) || def.build,
-    dir: get('dir') || def.dir,
-    main: get('main') || def.main,
-    deploy: parseBoolean(get('deploy')) || def.deploy,
-    deployBranch: get('deploy-branch') || def.deployBranch,
+    agda: get('agda-version'),
+    stdlib: get('stdlib-version'),
+    libraries: parseLibs(get('libraries')),
+    build: parseBoolean(get('build')),
+    dir: get('dir'),
+    main: get('main'),
+    deploy: parseBoolean(get('deploy')),
+    deployBranch: get('deploy-branch'),
     token: get('token'),
-    css: get('css') || def.css,
-    rts: get('rts') || def.rts,
-    ribbon: parseBoolean(get('ribbon')) || def.ribbon,
-    ribbonMsg: get('ribbon-msg') || def.ribbonMsg,
-    ribbonColor: get('ribbon-color') || def.ribbonColor,
-    measureTypechecking:
-      parseBoolean(get('measure-typechecking')) || def.measureTypechecking
+    css: get('css'),
+    rts: get('rts'),
+    ribbon: parseBoolean(get('ribbon')),
+    ribbonMsg: get('ribbon-msg'),
+    ribbonColor: get('ribbon-color'),
+    measureTypechecking: parseBoolean(get('measure-typechecking'))
   };
   const opts = resolveLatestVersions(opts0);
   core.debug(

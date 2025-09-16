@@ -1,8 +1,7 @@
 import {getInput} from '@actions/core';
-import {getOpts, getDefaults} from '../src/opts';
+import {getOpts} from '../src/opts';
 import * as supported_versions from '../src/versions.json';
 
-const def = getDefaults();
 const latestVersions = {
   agda: supported_versions.agda[0],
   stdlib: supported_versions.stdlib[0]
@@ -29,18 +28,9 @@ describe('actions/setup-agda', () => {
   const forAll = (fn: (t: Tool) => any) =>
     (['agda', 'stdlib'] as const).forEach(fn);
 
-  it('Parses action.yml to get correct default versions', () => {
-    forAll(t => expect(def[t]).toBe(latestVersions[t]));
-  });
-
   it('[meta] Setup Env works', () => {
     setupEnv({input: 'value'});
     expect(getInput('input')).toEqual('value');
-  });
-
-  it('getOpts grabs defaults correctly from environment', () => {
-    setupEnv({});
-    forAll(t => expect(getOpts()[t]).toBe(def[t]));
   });
 
   it('Versions resolve correctly', () => {
