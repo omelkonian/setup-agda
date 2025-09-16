@@ -73411,7 +73411,8 @@ const opts_1 = __nccwpck_require__(8131);
         const htmlOpts = opts.deploy
             ? `--html --html-dir=${htmlDir} --css=css/${cssFile}`
             : '';
-        const agdaCmd = `agda ${rtsOpts} ${htmlOpts} ${dir}/${main}.agda`;
+        const mainFn = main.split('.').length == 1 ? `${main}.agda` : main;
+        const agdaCmd = `agda ${rtsOpts} ${htmlOpts} ${dir}/${mainFn}`;
         await io.mv((0, path_1.join)(__dirname, 'scripts'), '.');
         // Measure typechecking time (per module).
         if (opts.measureTypechecking)
