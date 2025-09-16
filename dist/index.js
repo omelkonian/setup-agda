@@ -73274,7 +73274,18 @@ const opts_1 = __nccwpck_require__(8131);
             await (0, spawn_async_1.default)(cmds.join(' && '), [], { shell: true, stdio: 'inherit' });
             core.debug('...done');
         }
-        async function curlUnzip(title, src, dest, lib) {
+        function findAgdaLibFile(libDir) {
+            const libFiles = fs
+                .readdirSync(libDir)
+                .filter(el => (0, path_1.extname)(el) === '.agda-lib');
+            if (libFiles.length == 0)
+                throw 'No .agda-lib file';
+            else if (libFiles.length > 1)
+                throw 'More than one .agda-lib files';
+            else
+                return libFiles[0];
+        }
+        async function curlUnzip(title, src, dest, findLib = false) {
             core.info(`Downloading ${title}...`);
             try {
                 fs.accessSync(dest);
@@ -73284,8 +73295,11 @@ const opts_1 = __nccwpck_require__(8131);
                 await sh(`curl -L ${src} -o ${dest}.zip`, `unzip -qq ${dest}.zip -d ${downloads}`, `export f=$(unzip -Z1 ${dest} | head -n1)`, `cd ${downloads}`, `[ -e ${dest} ] || mv "$f" ${dest}`);
                 core.info('...done');
             }
-            if (lib)
-                await sh(`echo "${(0, path_1.join)(dest, lib)}" >> ${libsPath}`);
+            if (findLib) {
+                const agdaLibFile = findAgdaLibFile(dest);
+                await sh(`echo "${(0, path_1.join)(dest, agdaLibFile)}" >> ${libsPath}`);
+            }
+            // if (lib) await sh(`echo "${join(dest, lib)}" >> ${libsPath}`);
             // TODO Use tool-cache and cache libraries/local-builds as well..
         }
         core.info('Loading cache...');
@@ -73374,11 +73388,11 @@ const opts_1 = __nccwpck_require__(8131);
         // TODO: cleanup old library versions
         const stdlibURL = `https://github.com/agda/agda-stdlib/archive/v${stdlib}.zip`;
         const stdlibDir = (0, path_1.join)(downloads, `agda-stdlib-${stdlib}`);
-        await curlUnzip(stdlibv, stdlibURL, stdlibDir, 'standard-library.agda-lib');
+        await curlUnzip(stdlibv, stdlibURL, stdlibDir, true);
         for (const l of Object.values(libraries)) {
             const libURL = `https://github.com/${l.user}/${l.repo}/archive/${l.version}.zip`;
             const libDir = (0, path_1.join)(downloads, `${l.repo}-${l.version}`);
-            await curlUnzip(`library ${l.user}/${l.repo}#${l.version} from Github`, libURL, libDir, `${l.repo}.agda-lib`);
+            await curlUnzip(`library ${l.user}/${l.repo}#${l.version} from Github`, libURL, libDir, true);
         }
         if (!opts.build)
             return;

@@ -1,4 +1,4 @@
-import {basename, join} from 'path';
+import {basename, join, extname} from 'path';
 import * as fs from 'fs';
 import spawnAsync from '@expo/spawn-async';
 
@@ -71,11 +71,20 @@ import {getOpts, showLibs} from './opts';
       core.debug('...done');
     }
 
+    function findAgdaLibFile(libDir: string): string {
+      const libFiles = fs
+        .readdirSync(libDir)
+        .filter(el => extname(el) === '.agda-lib');
+      if (libFiles.length == 0) throw 'No .agda-lib file';
+      else if (libFiles.length > 1) throw 'More than one .agda-lib files';
+      else return libFiles[0];
+    }
+
     async function curlUnzip(
       title: string,
       src: string,
       dest: string,
-      lib?: string
+      findLib: boolean = false
     ): Promise<void> {
       core.info(`Downloading ${title}...`);
       try {
@@ -91,7 +100,11 @@ import {getOpts, showLibs} from './opts';
         );
         core.info('...done');
       }
-      if (lib) await sh(`echo "${join(dest, lib)}" >> ${libsPath}`);
+      if (findLib) {
+        const agdaLibFile = findAgdaLibFile(dest);
+        await sh(`echo "${join(dest, agdaLibFile)}" >> ${libsPath}`);
+      }
+      // if (lib) await sh(`echo "${join(dest, lib)}" >> ${libsPath}`);
       // TODO Use tool-cache and cache libraries/local-builds as well..
     }
 
@@ -184,7 +197,7 @@ import {getOpts, showLibs} from './opts';
 
     const stdlibURL = `https://github.com/agda/agda-stdlib/archive/v${stdlib}.zip`;
     const stdlibDir = join(downloads, `agda-stdlib-${stdlib}`);
-    await curlUnzip(stdlibv, stdlibURL, stdlibDir, 'standard-library.agda-lib');
+    await curlUnzip(stdlibv, stdlibURL, stdlibDir, true);
 
     for (const l of Object.values(libraries)) {
       const libURL = `https://github.com/${l.user}/${l.repo}/archive/${l.version}.zip`;
@@ -193,7 +206,7 @@ import {getOpts, showLibs} from './opts';
         `library ${l.user}/${l.repo}#${l.version} from Github`,
         libURL,
         libDir,
-        `${l.repo}.agda-lib`
+        true
       );
     }
 
