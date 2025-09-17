@@ -41,6 +41,8 @@ import {getOpts, showLibs} from './opts';
     const libsPath = join(libsDir, 'libraries');
 
     const cabalBin = join(home, '.cabal/bin');
+    const cabalPkg = join(home, '.cabal/packages');
+    const cabalStore = join(home, '.cabal/store');
     core.addPath(cabalBin);
 
     async function sh(...cmds: string[]): Promise<void> {
@@ -103,15 +105,15 @@ import {getOpts, showLibs} from './opts';
     //      *
     const paths = [
       // Global
-      `${home}/.cabal/packages`,
-      `${home}/.cabal/store`,
       cabalBin,
-      `${home}/.agda`,
+      cabalPkg,
+      cabalStore,
+      libsDir,
       downloads,
       // Local
-      'dist-newstyle',
-      'dist',
-      '_build'
+      join(cur, 'dist-newstyle'),
+      join(cur, 'dist'),
+      join(cur, '_build', agda)
     ];
 
     if (!c.isFeatureAvailable && opts.cache) {
@@ -123,7 +125,11 @@ import {getOpts, showLibs} from './opts';
 
     if (opts.cache) {
       core.info('Loading cache...');
+      core.debug(`  * paths: ${paths}`);
+      core.debug(`  * key: ${key}`);
+      core.debug(`  * restoreKeys: ${restoreKeys}`);
       cacheHit = await c.restoreCache(paths, key, restoreKeys);
+      core.debug(`  * cacheHit: ${cacheHit}`);
       core.info(`...${cacheHit ? 'done' : 'not found'}`);
     }
 

@@ -21,7 +21,7 @@
   "author": "Orestis Melkonian",
   "license": "MIT",
   "dependencies": {
-    "@actions/cache": "^3.2.4",
+    "@actions/cache": "^4.0.0",
     "@actions/core": "*",
     "@actions/io": "*",
     "@expo/spawn-async": "^1.7.2",
