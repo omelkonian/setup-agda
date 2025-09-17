@@ -24,6 +24,7 @@ export interface Options {
   build: boolean;
   dir: string;
   main: string;
+  cache: boolean;
   deploy: boolean;
   deployBranch: string;
   token: string;
@@ -83,6 +84,7 @@ export function getOpts(): Options {
     build: parseBoolean(get('build')),
     dir: get('dir'),
     main: get('main'),
+    cache: parseBoolean(get('cache')),
     deploy: parseBoolean(get('deploy')),
     deployBranch: get('deploy-branch'),
     token: get('token'),

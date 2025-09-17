@@ -26,6 +26,10 @@ inputs:
     required: false
     description: "Entry point for your Agda project without the '.agda' extension or root folder, e.g. 'Data.Nat'"
     default: 'Main'
+  cache:
+    require: false
+    description: 'Whether to cache CI builds.'
+    default: true
   deploy:
     required: false
     description: 'Whether to deploy the Github page, containing the Agda code rendered in HTML.'
