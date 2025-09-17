@@ -67,7 +67,7 @@ function parseLibs(libs: string): Library[] {
     return {
       user: usr,
       repo: rep2,
-      version: ver ? ver : 'master'
+      version: ver ? ver : 'main'
     };
   };
   const ls = libs.split('\n');

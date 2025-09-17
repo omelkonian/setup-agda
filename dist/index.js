@@ -52018,7 +52018,7 @@ function parseLibs(libs) {
         return {
             user: usr,
             repo: rep2,
-            version: ver ? ver : 'master'
+            version: ver ? ver : 'main'
         };
     };
     const ls = libs.split('\n');
@@ -52166,8 +52166,6 @@ const opts_1 = __nccwpck_require__(98065);
                 const agdaLibFile = findAgdaLibFile(dest);
                 await sh(`echo "${(0, path_1.join)(dest, agdaLibFile)}" >> ${libsPath}`);
             }
-            // if (lib) await sh(`echo "${join(dest, lib)}" >> ${libsPath}`);
-            // TODO Use tool-cache and cache libraries/local-builds as well..
         }
         // Cache parameters
         const keys = [repo, agdav, stdlibv, libsv];
@@ -52180,10 +52178,7 @@ const opts_1 = __nccwpck_require__(98065);
             keys.slice(0, 2).join('-') + '-' // repo-agdav-
         ];
         // e.g. * omelkonian/setup-agda-test-Agda-v2.7.0.1-Stdlib-v2.2-
-        //      *
-        //      *
-        //      *
-        //      *
+        //      * omelkonian/setup-agda-test-Agda-v2.7.0.1-
         const paths = [
             // Global
             cabalBin,
@@ -52358,20 +52353,20 @@ data-ribbon='${opts.ribbonMsg}' title='${opts.ribbonMsg}'>${opts.ribbonMsg}</a>`
             }
         }
         if (opts.cache) {
-            if (cacheHit != key) {
-                core.info('Saving cache...');
-                try {
-                    await c.saveCache(paths, key);
-                    core.info('...done');
-                }
-                catch (err) {
-                    const error = err;
-                    if (error.name === c.ReserveCacheError.name)
-                        core.info(`...${error.message}`);
-                    else
-                        throw err;
-                }
+            // if (cacheHit != key) {
+            core.info('Saving cache...');
+            try {
+                await c.saveCache(paths, key);
+                core.info('...done');
             }
+            catch (err) {
+                const error = err;
+                if (error.name === c.ReserveCacheError.name)
+                    core.info(`...${error.message}`);
+                else
+                    throw err;
+            }
+            // }
         }
         if (!opts.deploy)
             return;
