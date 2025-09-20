@@ -53448,7 +53448,12 @@ const opts_1 = __nccwpck_require__(98065);
                 core.debug(`  * no previous _build/ (error: ${err})`);
             }
             core.debug('_build contents:');
-            await sh(`ls -la _build/`);
+            try {
+                await sh(`ls -la _build/`);
+            }
+            catch (err) {
+                core.debug(` -> ERROR: ${err}`);
+            }
         }
         // Install agda
         await io.mkdirP(downloads);

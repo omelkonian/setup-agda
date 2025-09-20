@@ -136,7 +136,11 @@ import {getOpts, showLibs} from './opts';
         core.debug(`  * no previous _build/ (error: ${err})`);
       }
       core.debug('_build contents:');
-      await sh(`ls -la _build/`);
+      try {
+        await sh(`ls -la _build/`);
+      } catch (err) {
+        core.debug(` -> ERROR: ${err}`);
+      }
     }
 
     // Install agda
